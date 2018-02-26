@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,7 +57,7 @@ namespace Hexapod
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _mqttClient = new MqttClient("Hexapi", "172.16.0.244", 1883, _cancellationTokenSource.Token);
+            _mqttClient = new MqttClient("Hexapi", "172.16.0.244", 1883, 16384, _cancellationTokenSource.Token);
 
             await _mqttClient.InitializeAsync();
 
@@ -76,17 +77,13 @@ namespace Hexapod
                 _ikFilter.IkObservable = _xboxController.IkParamSubject.Distinct().AsObservable(); //.Merge(_gpsNavigator.IkParamSubject);
             }
 
-            _disposable = _usbCamera.ImageCaptureSubject.SubscribeOn(Scheduler.Default).Subscribe(async base64Image =>
-            {
-                if (string.IsNullOrEmpty(base64Image) || _mqttClient == null)
-                    return;
+            _disposable = _usbCamera.ImageCaptureSubject
+                .SubscribeOn(Scheduler.Default)
+                .Where(base64Image => !string.IsNullOrEmpty(base64Image))
+                .Subscribe(base64Image => _mqttClient.PublishAsync(base64Image, "hex-eye").ToObservable().Subscribe()); //SubscribeOn(Scheduler.Default)
 
-                var ack = await _mqttClient.PublishAsync(base64Image, "hex-eye").ConfigureAwait(false);
-            }); //SubscribeOn(Scheduler.Default)
-
-            await Task.WhenAll(_startTasks.ToArray());
         }
-        
+
         private void IkParamsSubscriptionEventHandler(string s)
         {
           

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,11 +89,7 @@ namespace HexapodRemoteUi.ViewModels{
                 _ikDisposable = _xboxController.IkParamSubject.Distinct()
                                     .AsObservable()
                                     .Sample(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)))
-                                    .Subscribe(async ikParams =>
-                                                {
-                                                    await OnNextXboxEvent(ikParams)
-                                                                .ConfigureAwait(false);
-                                                });
+                                    .Subscribe(ik => _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik").ToObservable().Subscribe());
 
                     AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
             }
@@ -130,7 +127,7 @@ namespace HexapodRemoteUi.ViewModels{
             {
                 if (_mqttClient == null)
                 {
-                    _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, _cancellationTokenSource.Token);
+                    _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883,64000, _cancellationTokenSource.Token);
 
                     var result = await _mqttClient.InitializeAsync();
 

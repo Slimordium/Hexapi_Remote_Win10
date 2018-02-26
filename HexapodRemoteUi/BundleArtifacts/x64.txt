@@ -1,0 +1,2 @@
+MainPackage=C:\Users\turtle\Source\Repos\Hexapi_Remote_Win10\HexapodRemoteUi\bin\x64\Debug\HexapodRemoteUi_1.0.1.0_x64_Debug.appx
+SymbolPackage=C:\Users\turtle\Source\Repos\Hexapi_Remote_Win10\HexapodRemoteUi\AppPackages\HexapodRemoteUi_1.0.1.0_Debug_Test\HexapodRemoteUi_1.0.1.0_x64_Debug.appxsym
