@@ -138,6 +138,12 @@
     <PackageReference Include="NLog">
       <Version>4.5.0-rc04</Version>
     </PackageReference>
+    <PackageReference Include="RxMqtt.Client">
+      <Version>1.0.0-rc3</Version>
+    </PackageReference>
+    <PackageReference Include="RxMqtt.Shared">
+      <Version>1.0.0-rc2</Version>
+    </PackageReference>
     <PackageReference Include="System.Reactive">
       <Version>3.1.1</Version>
     </PackageReference>
@@ -147,12 +153,6 @@
       <Project>{cfbb9761-d238-4d99-9f25-4e4ad465b619}</Project>
       <Name>Hexapod</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="RxMqtt.Client, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\RxMqtt\RxMqtt.Client.Console\bin\Release\RxMqtt.Client.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
