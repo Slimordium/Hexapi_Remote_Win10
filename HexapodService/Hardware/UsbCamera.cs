@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
@@ -12,6 +14,7 @@ using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media.Imaging;
 using NLog;
 
 namespace Hexapod.Hardware{
@@ -19,9 +22,33 @@ namespace Hexapod.Hardware{
     {
         private static readonly ILogger _logger = LogManager.GetCurrentClassLogger();
 
-        private readonly ISubject<string> _imageCaptureSubject = new Subject<string>();
+        private readonly ISubject<byte[]> _imageCaptureSubject = new Subject<byte[]>();
 
-        internal ISubject<string> ImageCaptureSubject { get; private set; }
+        internal ISubject<byte[]> ImageCaptureSubject { get; private set; }
+
+        private async Task<byte[]> EncodedBytes(SoftwareBitmap soft, Guid encoderId)
+        {
+            byte[] array = null;
+
+            // First: Use an encoder to copy from SoftwareBitmap to an in-mem stream (FlushAsync)
+            // Next:  Use ReadAsync on the in-mem stream to get byte[] array
+
+            using (var ms = new InMemoryRandomAccessStream())
+            {
+                BitmapEncoder encoder = await BitmapEncoder.CreateAsync(encoderId, ms);
+                encoder.SetSoftwareBitmap(soft);
+
+                try
+                {
+                    await encoder.FlushAsync();
+                }
+                catch (Exception ex) { return new byte[0]; }
+
+                array = new byte[ms.Size];
+                await ms.ReadAsync(array.AsBuffer(), (uint)ms.Size, InputStreamOptions.None);
+            }
+            return array;
+        }
 
         internal async Task<bool> StartAsync(CancellationToken cancellationToken)
         {
@@ -52,67 +79,8 @@ namespace Hexapod.Hardware{
                 //// Now set the updated meta data into the video preview.
                 await _mediaCapture.SetEncodingPropertiesAsync(MediaStreamType.VideoPreview, props, null);
 
-                //LowLagPhotoCapture lowLag = null;
-
-                //if (_mediaCapture == null)
-                //{
-                //    //_mediaCapture.VideoDeviceController.LowLagPhoto.ThumbnailEnabled = true;
-                //    //_mediaCapture.VideoDeviceController.LowLagPhoto.ThumbnailFormat = MediaThumbnailFormat.Bmp;
-                //    //_mediaCapture.VideoDeviceController.LowLagPhoto.DesiredThumbnailSize = 800;
-
-                //    //lowLag = await _mediaCapture.PrepareLowLagPhotoCaptureAsync(ImageEncodingProperties.CreateJpeg());
-                //}
-
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    //var photo = await lowLag.CaptureAsync();
-
-                    // Get photo as a BitmapImage
-                    //BitmapImage bitmap = new BitmapImage();
-                    //await bitmap.SetSourceAsync(photo.Frame);
-
-                    // Get thumbnail as a BitmapImage
-                    //var bitmapThumbnail = new BitmapImage();
-                    //await bitmapThumbnail.SetSourceAsync(photo.Thumbnail);
-
-
-                    //using (var ms = new MemoryStream())
-                    //{
-                    //    WriteableBitmap wb = new WriteableBitmap((int)photo.Thumbnail.Width, (int)photo.Thumbnail.Height );
-                    //    await wb.SetSourceAsync(photo.Thumbnail);
-
-                    //    using (var s1 = wb.PixelBuffer.AsStream())
-                    //    {
-                    //        s1.CopyTo(ms);
-
-                    //        var s = Convert.ToBase64String(ms.ToArray());
-
-                    //        _imageCaptureSubject.OnNext(s);
-                    //    }
-
-                    //}
-
-                    //using (var bitmapBgra8 = SoftwareBitmap.Convert(photo.Thumbnail.SoftwareBitmap, BitmapPixelFormat.Bgra8))
-                    //{
-                    //    var wb = new WriteableBitmap(bitmap.PixelWidth, bitmap.PixelHeight);
-                    //    bitmapBgra8.CopyToBuffer(wb.PixelBuffer);
-
-                    //    using (var stream = new  InMemoryRandomAccessStream())
-                    //    {
-                    //        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, stream);
-                    //        encoder.SetSoftwareBitmap(bitmapBgra8);
-                    //        await encoder.FlushAsync();
-
-                    //        var reader = new DataReader(stream.GetInputStreamAt(0));
-                    //        var bytes = new byte[stream.Size];
-                    //        await reader.LoadAsync((uint)stream.Size);
-                    //        reader.ReadBytes(bytes);
-                    //        var s = Convert.ToBase64String(bytes);
-
-                    //        _imageCaptureSubject.OnNext(s);
-                    //    }
-                    //}
-
                     using (var stream = new InMemoryRandomAccessStream())
                     {
                         try
@@ -126,7 +94,7 @@ namespace Hexapod.Hardware{
                             continue;
                         }
 
-                        using (var stream2 = await ReencodeAndSavePhotoAsync1(stream, PhotoOrientation.Rotate180))
+                        using (var stream2 = await Reencode(stream, PhotoOrientation.Rotate180))
                         {
                             try
                             {
@@ -139,9 +107,7 @@ namespace Hexapod.Hardware{
                                     reader.ReadBytes(bytes);
 
 
-                                    s = Convert.ToBase64String(bytes);
-
-                                    ImageCaptureSubject.OnNext(s);
+                                    ImageCaptureSubject.OnNext(bytes);
                                 }
                             }
                             catch (Exception e)
@@ -158,7 +124,7 @@ namespace Hexapod.Hardware{
             return await tcs.Task;
         }
 
-        private static async Task<IRandomAccessStream> ReencodeAndSavePhotoAsync1(IRandomAccessStream stream, PhotoOrientation photoOrientation)
+        private static async Task<IRandomAccessStream> Reencode(IRandomAccessStream stream, PhotoOrientation photoOrientation)
         {
             IRandomAccessStream randomAccessStream;
 

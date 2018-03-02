@@ -7,13 +7,13 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Width="Auto">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Width="Auto" Height="Auto">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180" />
-            <ColumnDefinition Width="130" />
-            <ColumnDefinition Width="130" />
-            <ColumnDefinition Width="130" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width=".5*" />
+            <ColumnDefinition Width="1.3*" />
+            <ColumnDefinition Width=".5*" />
+            <ColumnDefinition Width="1.5*" />
+            <ColumnDefinition Width="1.5*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="35" />
@@ -60,9 +60,9 @@
         <TextBox Name="SubTopic" Grid.Row="8" Grid.Column="1" Height="28"></TextBox>
         <Button Name="Subscribe" Grid.Column="2" Grid.Row="8" Content="Subscribe" HorizontalAlignment="Center"></Button>
 
-        <Image Grid.Column="4" Grid.Row="0" Width="Auto" Height="Auto" Grid.RowSpan="10" VerticalAlignment="Top" HorizontalAlignment="Left" Stretch="Uniform" Name="HexImage" Margin="5" />
+        <Image Grid.Column="3" Grid.Row="0" Width="Auto" Height="Auto" Grid.RowSpan="10" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5" />
 
-        <ScrollViewer Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Width="550" BorderBrush="Gray" Background="Black" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Height="500">
+        <ScrollViewer Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Width="Auto" BorderBrush="Gray" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="5" Height="500">
             <TextBlock  HorizontalAlignment="Left" Text="{Binding Log}" FontSize="12" Padding="0" TextWrapping="Wrap" Foreground="LawnGreen"></TextBlock>
         </ScrollViewer>
         

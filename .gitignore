@@ -224,3 +224,5 @@ ModelManifest.xml
 *.DotSettings
 /Client/MqttTest
 /RxMqttUi
+/HexapiRemoteUi
+/HexapiConsole

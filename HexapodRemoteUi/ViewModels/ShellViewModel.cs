@@ -155,23 +155,23 @@ namespace HexapodRemoteUi.ViewModels{
 
                 using (var outputStream = new InMemoryRandomAccessStream())
                 {
-                    //var pixelData = await decoder.GetPixelDataAsync(
-                    //                            BitmapPixelFormat.Rgba8,
-                    //                            BitmapAlphaMode.Straight,
-                    //                            new BitmapTransform { ScaledHeight = decoder.PixelHeight , ScaledWidth = decoder.PixelWidth },
-                    //                            ExifOrientationMode.RespectExifOrientation,
-                    //                            ColorManagementMode.DoNotColorManage);
+                    var pixelData = await decoder.GetPixelDataAsync(
+                                                BitmapPixelFormat.Rgba8,
+                                                BitmapAlphaMode.Straight,
+                                                new BitmapTransform { ScaledHeight = decoder.PixelHeight, ScaledWidth = decoder.PixelWidth },
+                                                ExifOrientationMode.RespectExifOrientation,
+                                                ColorManagementMode.DoNotColorManage);
 
                     var encoder = await BitmapEncoder.CreateForTranscodingAsync(outputStream, decoder);
 
-                    //encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth , decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
+                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth, decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
 
-                    //var properties = new BitmapPropertySet
-                    //{
-                    //    { "System.Photo.Orientation", new BitmapTypedValue(photoOrientation, PropertyType.UInt16) },
-                    //};
+                    var properties = new BitmapPropertySet
+                    {
+                        { "System.Photo.Orientation", new BitmapTypedValue(photoOrientation, PropertyType.UInt16) },
+                    };
 
-                    //await encoder.BitmapProperties.SetPropertiesAsync(properties);
+                    await encoder.BitmapProperties.SetPropertiesAsync(properties);
                     await encoder.FlushAsync();
 
                     randomAccessStream = outputStream.CloneStream();
@@ -181,7 +181,7 @@ namespace HexapodRemoteUi.ViewModels{
             return randomAccessStream;
         }
 
-        private async void ImageHandler(string s)
+        private async void ImageHandler(byte[] bytes)
         {
             //Run on UI thread
             await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
@@ -189,30 +189,20 @@ namespace HexapodRemoteUi.ViewModels{
                 {
                     try
                     {
-                        //AddToLog(s.Length.ToString());
+                        var imageBuffer = bytes.AsBuffer().AsStream().AsRandomAccessStream();
+                      
+                        //using (var image = await ReencodeAndSavePhotoAsync1(imageBuffer.AsStream().AsRandomAccessStream(), PhotoOrientation.Normal))
+                        //{
+                            var decoder = await BitmapDecoder.CreateAsync(imageBuffer);
+                            imageBuffer.Seek(0);
 
-                        var bytes = Convert.FromBase64String(s);
+                            var output = new WriteableBitmap((int)decoder.PixelHeight, (int)decoder.PixelWidth);
+                            await output.SetSourceAsync(imageBuffer);
 
-                        var imageBuffer = bytes.AsBuffer();
+                            HexImage = output;
 
-                        using (var imageStream = imageBuffer.AsStream())
-                        {
-                            using (var image1 = imageStream.AsRandomAccessStream())
-                            {
-                                //using (var image = await ReencodeAndSavePhotoAsync1(image1, PhotoOrientation.Normal))
-                                //{
-                                    var decoder = await BitmapDecoder.CreateAsync(image1);
-                                    image1.Seek(0);
-
-                                    var output = new WriteableBitmap((int)decoder.PixelHeight, (int)decoder.PixelWidth);
-                                    await output.SetSourceAsync(image1);
-
-                                    HexImage = output;
-
-                                    NotifyOfPropertyChange(nameof(HexImage));
-                                //}
-                            }
-                        }
+                            NotifyOfPropertyChange(nameof(HexImage));
+                        //}
                     }
                     catch (Exception e)
                     {
@@ -246,7 +236,7 @@ namespace HexapodRemoteUi.ViewModels{
             await _mqttClient.PublishAsync(PubMessage, PubTopic);
         }
 
-        public async Task Subscribe()
+        public void Subscribe()
         {
             if (string.IsNullOrEmpty(SubTopic))
             {
