@@ -33,7 +33,7 @@
         <TextBox Name="BrokerIp" Grid.Row="0" Grid.Column="1" Height="28"></TextBox>
         <Button Name="BrokerConnect" Grid.Column="2" Grid.Row="0" Content="Connect" HorizontalAlignment="Center"></Button>
         
-        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,15,0" FontSize="12"></CheckBox>
+        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Stretch" Margin="20,0,0,0" FontSize="12"></CheckBox>
         <Slider Name="UpdateInterval" Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="750" Value="100" ></Slider>
         <Button Name="SetUpdateInterval" Grid.Column="2" Grid.Row="1" Content="Set Update Interval" HorizontalAlignment="Center"></Button>
 
