@@ -312,9 +312,9 @@ namespace Hexapod
                     break;
             }
 
-            ikParams.LengthX = xboxEvent.LeftTrigger.Map(0, 10000, 0, _ikLimits.TravelLengthXlimit);
+            ikParams.LengthX = -xboxEvent.LeftTrigger.Map(0, 10000, 0, _ikLimits.TravelLengthXlimit);
 
-            ikParams.LengthX += -xboxEvent.RightTrigger.Map(0, 10000, 0, _ikLimits.TravelLengthXlimit);
+            ikParams.LengthX += xboxEvent.RightTrigger.Map(0, 10000, 0, _ikLimits.TravelLengthXlimit);
 
             return ikParams;
         }

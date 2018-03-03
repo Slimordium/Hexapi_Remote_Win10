@@ -79,8 +79,11 @@ namespace Hexapod
 
             _disposable = _usbCamera.ImageCaptureSubject
                 .SubscribeOn(Scheduler.Default)
-                .Where(base64Image => base64Image != null)
-                .Subscribe(base64Image => _mqttClient.PublishAsync(base64Image, "hex-eye", TimeSpan.FromSeconds(5)).ToObservable().Subscribe()); //SubscribeOn(Scheduler.Default)
+                .Where(image => image != null)
+                .Subscribe(
+                    image => _mqttClient.PublishAsync(image, "hex-eye", TimeSpan.FromSeconds(5))
+                        .ToObservable()
+                        .Subscribe());
 
         }
 

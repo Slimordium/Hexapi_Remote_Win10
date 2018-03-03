@@ -100,13 +100,6 @@ namespace HexapodRemoteUi.ViewModels{
             }
 
             _disposable?.Dispose();
-
-            //_updateInterval = Observable.Interval(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)));
-
-            //_disposable = _updateInterval.Subscribe(async l =>
-            //{
-            //    await PublishUpdate();
-            //});
         }
 
         private async Task OnNextXboxEvent(IkParams ikParams)
@@ -127,7 +120,7 @@ namespace HexapodRemoteUi.ViewModels{
             {
                 if (_mqttClient == null)
                 {
-                    _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883,64000, _cancellationTokenSource.Token);
+                    _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 64000, _cancellationTokenSource.Token);
 
                     var result = await _mqttClient.InitializeAsync();
 
@@ -219,7 +212,8 @@ namespace HexapodRemoteUi.ViewModels{
             {
                 GaitType = (GaitType) gaitType,
                 LegLiftHeight = LegLiftHeight,
-                GaitSpeedMs = GaitSpeed
+                GaitSpeedMs = GaitSpeed,
+                BodyPositionY = BodyHeight
             };
 
             await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ikParams), "hex/ik").ConfigureAwait(false);
