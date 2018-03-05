@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reactive" Version="4.0.0-preview00001" />
+    <PackageReference Include="System.Reactive.Interfaces" Version="4.0.0-preview00001" />
+    <PackageReference Include="System.Reactive.Linq" Version="4.0.0-preview00001" />
+  </ItemGroup>
+
+</Project>
