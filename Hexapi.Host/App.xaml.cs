@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Activation;
+using Windows.ApplicationModel.ExtendedExecution;
 using Windows.UI.Xaml.Controls;
 using Caliburn.Micro;
 using Hexapi.Host.ViewModels;
@@ -29,6 +30,15 @@ namespace Hexapi.Host
 
         protected override async void Configure()
         {
+            var extendedExecutionSession = new ExtendedExecutionSession {Reason = ExtendedExecutionReason.Unspecified};
+            var extendedExecutionResult = await extendedExecutionSession.RequestExtensionAsync();
+            if (extendedExecutionResult != ExtendedExecutionResult.Allowed)
+            {
+                //extended execution session revoked
+                extendedExecutionSession.Dispose();
+                extendedExecutionSession = null;
+            }
+
             _container = new WinRTContainer();
 
             _container.RegisterWinRTServices();

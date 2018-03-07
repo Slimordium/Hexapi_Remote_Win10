@@ -16,6 +16,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
 using Hardware.Xbox;
+using Hexapi.Shared;
 using Hexapi.Shared.Ik;
 using Hexapi.Shared.Ik.Enums;
 using Newtonsoft.Json;
@@ -49,15 +50,102 @@ namespace Hexapi.Remote.ViewModels{
 
         private IObservable<long> _updateInterval;
 
-        private IDisposable _disposable;
-
         private XboxIkController _xboxController;
 
         public WriteableBitmap HexImage { get; set; }
 
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-        private IDisposable _ikDisposable;
+        private List<IDisposable> _disposables = new List<IDisposable>();
+
+        private double _ax;
+        public double Ax
+        {
+            get => _ax;
+            set
+            {
+                _ax = value;
+                NotifyOfPropertyChange(nameof(Ax));
+            }
+        }
+
+        private double _ay;
+        public double Ay
+        {
+            get => _ay;
+            set
+            {
+                _ay = value;
+                NotifyOfPropertyChange(nameof(Ay));
+            }
+        }
+
+        private double _az;
+        public double Az
+        {
+            get => _az;
+            set
+            {
+                _az = value;
+                NotifyOfPropertyChange(nameof(Az));
+            }
+        }
+
+        private double _gx;
+        public double Gx
+        {
+            get => _gx;
+            set
+            {
+                _gx = value;
+                NotifyOfPropertyChange(nameof(Gx));
+            }
+        }
+
+
+        private double _gy;
+        public double Gy
+        {
+            get => _gy;
+            set
+            {
+                _gy = value;
+                NotifyOfPropertyChange(nameof(Gy));
+            }
+        }
+
+        private double _gz;
+        public double Gz
+        {
+            get => _gz;
+            set
+            {
+                _gz = value;
+                NotifyOfPropertyChange(nameof(Gz));
+            }
+        }
+
+        private double _leftInches;
+        public double LeftInches
+        {
+            get => _leftInches;
+            set
+            {
+                _leftInches = value;
+                NotifyOfPropertyChange(nameof(LeftInches));
+            }
+        }
+
+        private double _rightInches;
+        public double RightInches
+        {
+            get => _rightInches;
+            set
+            {
+                _rightInches = value;
+                NotifyOfPropertyChange(nameof(RightInches));
+            }
+        }
 
         public ShellViewModel()
         {
@@ -67,7 +155,12 @@ namespace Hexapi.Remote.ViewModels{
         {
             if (!StreamChanges)
             {
-                _disposable?.Dispose();
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+
+                _disposables = new List<IDisposable>();
 
                 _cancellationTokenSource.Cancel();
 
@@ -82,24 +175,20 @@ namespace Hexapi.Remote.ViewModels{
 
             if (_xboxController.IsConnected)
             {
-                _ikDisposable?.Dispose();
 
-                _ikDisposable = _xboxController.IkParamSubject
+                _disposables.Add(_xboxController.IkParamSubject
                                     .Distinct()
                                     .AsObservable()
                                     .Sample(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)))
                                     .SubscribeOn(Scheduler.Default)
-                                    .Subscribe(ik => _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik").ToObservable().Subscribe());
+                                    .Subscribe(ik => _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik").ToObservable().Subscribe()));
 
-                    AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
+                AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
             }
             else
             {
                 AddToLog($"xBox controller not connected");
-                return;
             }
-
-            _disposable?.Dispose();
         }
 
         private async Task OnNextXboxEvent(IkParams ikParams)
@@ -126,6 +215,8 @@ namespace Hexapi.Remote.ViewModels{
 
                     _mqttClient.Subscribe(ImageHandler, "hex-eye");
 
+                    _mqttClient.Subscribe(Telemetry, "hex-telemetry");
+
                     AddToLog($"Connection {result}");
                 }
                 else
@@ -135,6 +226,29 @@ namespace Hexapi.Remote.ViewModels{
             catch (Exception e)
             {
                 AddToLog(e.Message);
+            }
+        }
+
+        private void Telemetry(string serializedData)
+        {
+            try
+            {
+                var telemetry = JsonConvert.DeserializeObject<HexapiTelemetry>(serializedData);
+
+                Ax = telemetry.ImuData.AccelX;
+                Ay = telemetry.ImuData.AccelY;
+                Az = telemetry.ImuData.AccelZ;
+
+                Gx = telemetry.ImuData.Yaw;
+                Gy = telemetry.ImuData.Pitch;
+                Gz = telemetry.ImuData.Roll;
+
+                RightInches = telemetry.RightRange;
+                LeftInches = telemetry.LeftRange;
+            }
+            catch (Exception e)
+            {
+                //
             }
         }
 
@@ -148,24 +262,19 @@ namespace Hexapi.Remote.ViewModels{
                     {
                         var imageBuffer = bytes.AsBuffer().AsStream().AsRandomAccessStream();
                       
-                        //using (var image = await ReencodeAndSavePhotoAsync1(imageBuffer.AsStream().AsRandomAccessStream(), PhotoOrientation.Normal))
-                        //{
-                            var decoder = await BitmapDecoder.CreateAsync(imageBuffer);
-                            imageBuffer.Seek(0);
+                        var decoder = await BitmapDecoder.CreateAsync(imageBuffer);
+                        imageBuffer.Seek(0);
 
-                            var output = new WriteableBitmap((int)decoder.PixelHeight, (int)decoder.PixelWidth);
-                            await output.SetSourceAsync(imageBuffer);
+                        HexImage = new WriteableBitmap((int)decoder.PixelHeight, (int)decoder.PixelWidth);
+                        await HexImage.SetSourceAsync(imageBuffer);
 
-                            HexImage = output;
-
-                            NotifyOfPropertyChange(nameof(HexImage));
-                        //}
+                        NotifyOfPropertyChange(nameof(HexImage));
                     }
                     catch (Exception e)
                     {
                         AddToLog(e.Message);
                     }
-                });
+            });
         }
 
         public async Task PublishUpdate()

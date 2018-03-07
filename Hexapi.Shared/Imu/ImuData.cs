@@ -4,9 +4,14 @@ namespace Hexapi.Shared.Imu
 {
     public class ImuData 
     {
+        public ImuData()
+        {
+
+        }
+
         public ImuData(string[] values)
         {
-            if (values.Length < 6) return;
+            if (values == null || values.Length < 6) return;
 
             AccelX = Convert.ToDouble(values[0]);
             AccelY = Convert.ToDouble(values[1]);

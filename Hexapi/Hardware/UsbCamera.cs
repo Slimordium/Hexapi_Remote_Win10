@@ -98,14 +98,11 @@ namespace Hexapi.Service.Hardware{
                         {
                             try
                             {
-                                var s = string.Empty;
-
                                 using (var reader = new DataReader(stream2.GetInputStreamAt(0)))
                                 {
                                     var bytes = new byte[stream2.Size];
                                     await reader.LoadAsync((uint)stream2.Size);
                                     reader.ReadBytes(bytes);
-
 
                                     ImageCaptureSubject.OnNext(bytes);
                                 }
@@ -115,6 +112,7 @@ namespace Hexapi.Service.Hardware{
                                 _logger.Log(LogLevel.Warn, $"ImageCapture => {e.Message}");
                             }
                         }
+
                     }
                 }
 
@@ -137,13 +135,13 @@ namespace Hexapi.Service.Hardware{
                     var pixelData = await decoder.GetPixelDataAsync(
                                                  BitmapPixelFormat.Rgba8,
                                                  BitmapAlphaMode.Straight,
-                                                 new BitmapTransform { ScaledHeight = decoder.PixelHeight / 3, ScaledWidth = decoder.PixelWidth / 3 },
+                                                 new BitmapTransform { ScaledHeight = decoder.PixelHeight / 2, ScaledWidth = decoder.PixelWidth / 2 },
                                                  ExifOrientationMode.RespectExifOrientation,
                                                  ColorManagementMode.DoNotColorManage);
 
                     var encoder = await BitmapEncoder.CreateForTranscodingAsync(outputStream, decoder);
 
-                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth / 3, decoder.PixelHeight / 3, 96, 96, pixelData.DetachPixelData());
+                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth / 2, decoder.PixelHeight / 2, 96, 96, pixelData.DetachPixelData());
 
                     var properties = new BitmapPropertySet
                     {

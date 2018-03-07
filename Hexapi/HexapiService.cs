@@ -81,6 +81,8 @@ namespace Hexapi.Service
 
             await Task.WhenAll(_initializeTasks.ToArray());
 
+            
+
             if (_xboxController.IsConnected)
             {
                 _ikFilter.IkObservable = _xboxController.IkParamSubject
@@ -94,28 +96,32 @@ namespace Hexapi.Service
                 .Where(image => image != null)
                 .SubscribeOn(Scheduler.Default)
                 .Subscribe(
-                    image =>
+                    async image =>
                     {
-                        _mqttClient.PublishAsync(image, "hex-eye", TimeSpan.FromSeconds(1))
-                            .ToObservable()
-                            .Subscribe();
+                        try
+                        {
+                            var r = await _mqttClient.PublishAsync(image, "hex-eye", TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                        }
+                        catch (Exception e)
+                         {
+
+                        }
+                        
                     }));
 
             _disposables.Add(_curieReader.HexapiTelemetrySubject
                 .Where(hexapiTelemetry => hexapiTelemetry != null)
-                .Distinct()
+                //.Distinct()
                 .Sample(TimeSpan.FromMilliseconds(150))
                 .SubscribeOn(Scheduler.Default)
                 .Subscribe(
-                    hexapiTelemetry =>
+                    async hexapiTelemetry =>
                     {
                         try
                         {
                             var serializedData = JsonConvert.SerializeObject(hexapiTelemetry);
 
-                            _mqttClient.PublishAsync(serializedData, "hex-telemetry", TimeSpan.FromSeconds(1))
-                                .ToObservable()
-                                .Subscribe();
+                            var r = await _mqttClient.PublishAsync(serializedData, "hex-telemetry", TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                         }
                         catch (Exception e)
                         {
@@ -123,6 +129,7 @@ namespace Hexapi.Service
                         }
                     }));
 
+            await Task.WhenAll(_startTasks.ToArray());
         }
 
         private void IkParamsSubscriptionEventHandler(string s)
