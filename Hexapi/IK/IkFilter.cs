@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -71,13 +72,13 @@ namespace Hexapi.Service.IK
             _inverseKinematics.IkObservable = _ikSubject.AsObservable();
 
             if (IkObservable != null)
-                _ikDisposable = IkObservable.Subscribe(OnNextIkParams);
+                _ikDisposable = IkObservable.SubscribeOn(Scheduler.Default).Subscribe(OnNextIkParams);
 
             if (IkRemoteSubject == null)
                 return _inverseKinematics.StartAsync(_cancellationTokenSource.Token);
 
             _ikOverrideObservable = IkRemoteSubject.AsObservable();
-            _ikOverrideObservable.Subscribe(OnNextIkRemote);
+            _ikOverrideObservable.SubscribeOn(Scheduler.Default).Subscribe(OnNextIkRemote);
 
             return _inverseKinematics.StartAsync(_cancellationTokenSource.Token);
         }

@@ -124,6 +124,12 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.0.7</Version>
     </PackageReference>
+    <PackageReference Include="RxMqtt.Client">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
+    <PackageReference Include="RxMqtt.Shared">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
     <PackageReference Include="System.Reactive">
       <Version>4.0.0-preview00001</Version>
     </PackageReference>

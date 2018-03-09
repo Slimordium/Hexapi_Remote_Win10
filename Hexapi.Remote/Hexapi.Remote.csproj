@@ -186,6 +186,12 @@
     <PackageReference Include="NLog">
       <Version>4.5.0-rc04</Version>
     </PackageReference>
+    <PackageReference Include="RxMqtt.Client">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
+    <PackageReference Include="RxMqtt.Shared">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
     <PackageReference Include="System.Net.WebSockets.Client">
       <Version>4.3.2</Version>
     </PackageReference>
@@ -214,14 +220,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Hexapi.Remote_TemporaryKey.pfx" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="RxMqtt.Client">
-      <HintPath>..\..\RxMqtt\RxMqtt.Client.Console\bin\x64\Debug\RxMqtt.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="RxMqtt.Shared">
-      <HintPath>..\..\RxMqtt\RxMqtt.Client.Console\bin\x64\Debug\RxMqtt.Shared.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

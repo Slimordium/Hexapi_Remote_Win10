@@ -139,6 +139,12 @@
     <PackageReference Include="NLog">
       <Version>4.5.0-rc06</Version>
     </PackageReference>
+    <PackageReference Include="RxMqtt.Client">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
+    <PackageReference Include="RxMqtt.Shared">
+      <Version>1.0.0-rc7</Version>
+    </PackageReference>
     <PackageReference Include="System.Net.WebSockets.Client">
       <Version>4.3.2</Version>
     </PackageReference>
@@ -159,10 +165,6 @@
     <ProjectReference Include="..\Hardware.Xbox\Hardware.Xbox.csproj">
       <Project>{a906ed34-b406-45ff-94f4-edb568341513}</Project>
       <Name>Hardware.Xbox</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Hexapi.Shared\Hexapi.Shared.csproj">
-      <Project>{e4fbfff0-677a-4d8d-8cf3-33c1c1504d97}</Project>
-      <Name>Hexapi.Shared</Name>
     </ProjectReference>
     <ProjectReference Include="..\Hexapi\Hexapi.Service.csproj">
       <Project>{cfbb9761-d238-4d99-9f25-4e4ad465b619}</Project>

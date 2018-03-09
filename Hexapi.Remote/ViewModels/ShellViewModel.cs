@@ -48,7 +48,6 @@ namespace Hexapi.Remote.ViewModels{
 
         public bool StreamChanges { get; set; }
 
-        private IObservable<long> _updateInterval;
 
         private XboxIkController _xboxController;
 
@@ -183,24 +182,23 @@ namespace Hexapi.Remote.ViewModels{
                                     .SubscribeOn(Scheduler.Default)
                                     .Subscribe(ik => _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik").ToObservable().Subscribe()));
 
-                AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
+                await AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
             }
             else
             {
-                AddToLog($"xBox controller not connected");
+                await AddToLog($"xBox controller not connected");
             }
         }
 
-        private async Task OnNextXboxEvent(IkParams ikParams)
+        private async Task AddToLog(string logEntry)
         {
-            await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ikParams), "hex-ik");
-        }
+            await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                () =>
+                {
+                    Log = logEntry + Environment.NewLine + Log;
 
-        private void AddToLog(string logEntry)
-        {
-            Log = logEntry + Environment.NewLine + Log;
-
-            NotifyOfPropertyChange(nameof(Log));
+                    NotifyOfPropertyChange(nameof(Log));
+                });
         }
 
         public async Task BrokerConnect()
@@ -217,15 +215,15 @@ namespace Hexapi.Remote.ViewModels{
 
                     _mqttClient.Subscribe(Telemetry, "hex-telemetry");
 
-                    AddToLog($"Connection {result}");
+                    await AddToLog($"Connection {result}");
                 }
                 else
-                    AddToLog("Already connected");
+                    await AddToLog("Already connected");
 
             }
             catch (Exception e)
             {
-                AddToLog(e.Message);
+                await AddToLog(e.Message);
             }
         }
 
@@ -272,7 +270,7 @@ namespace Hexapi.Remote.ViewModels{
                     }
                     catch (Exception e)
                     {
-                        AddToLog(e.Message);
+                        await AddToLog(e.Message);
                     }
             });
         }
@@ -289,37 +287,38 @@ namespace Hexapi.Remote.ViewModels{
                 BodyPositionY = BodyHeight,
             };
 
-            await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ikParams), "hex/ik").ConfigureAwait(false);
+            var ack = await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ikParams), "hex/ik").ConfigureAwait(false);
         }
 
         public async Task PublishMessage()
         {
             if (string.IsNullOrEmpty(PubMessage) || string.IsNullOrEmpty(PubTopic))
             {
-                AddToLog("Please enter message and topic first");
+                await AddToLog("Please enter message and topic first");
                 return;
             }
 
-            await _mqttClient.PublishAsync(PubMessage, PubTopic);
+            var ack = await _mqttClient.PublishAsync(PubMessage, PubTopic);
+
+            await AddToLog("PublishAck");
         }
 
-        public void Subscribe()
+        public async Task Subscribe()
         {
             if (string.IsNullOrEmpty(SubTopic))
             {
-                AddToLog("Need a topic first");
+                await AddToLog("Need a topic first");
                 return;
             }
 
             _mqttClient.Subscribe(IncomingPublish, SubTopic);
 
-            AddToLog($"Subscribed to {SubTopic}");
+            await AddToLog($"Subscribed to {SubTopic}");
         }
 
         private void IncomingPublish(string s)
         {
-         
-            AddToLog(s);
+            AddToLog(s).ToObservable().Subscribe();
         }
     }
 }

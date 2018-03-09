@@ -61,7 +61,7 @@ namespace Hexapi.Service
         {
             try
             {
-                _mqttClient = new MqttClient("Hexapi", "172.16.0.244", 1883, 60000, _cancellationTokenSource.Token);
+                _mqttClient = new MqttClient("Hexapi", "172.16.0.245", 1883, 60000, _cancellationTokenSource.Token);
 
                 await _mqttClient.InitializeAsync();
 
