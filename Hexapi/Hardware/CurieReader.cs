@@ -61,7 +61,7 @@ namespace Hexapi.Service.Hardware
 
                         var telemetry = new HexapiTelemetry
                         {
-                            ImuData = new ImuData(values),
+                            //ImuData = new ImuData(values),
                             LeftRange = Convert.ToDouble(values[6]),
                             RightRange = Convert.ToDouble(values[7])
                         };

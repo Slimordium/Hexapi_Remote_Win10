@@ -113,6 +113,8 @@
     <Compile Include="Hardware\Mpr121.cs" />
     <Compile Include="Hardware\Mpu9150.cs" />
     <Compile Include="Hardware\Pca9685.cs" />
+    <Compile Include="Hardware\MaxbotixSonar.cs" />
+    <Compile Include="Hardware\RazorImu.cs" />
     <Compile Include="Hardware\RemoteArduino.cs" />
     <Compile Include="Hardware\Rfm69Hcw.cs" />
     <Compile Include="Hardware\SerialDeviceHelper.cs" />

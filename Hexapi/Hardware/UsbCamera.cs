@@ -94,14 +94,14 @@ namespace Hexapi.Service.Hardware{
                             continue;
                         }
 
-                        using (var stream2 = await Reencode(stream, PhotoOrientation.Rotate180))
-                        {
+                        //using (var stream2 = await Reencode(stream, PhotoOrientation.Rotate180))
+                        //{
                             try
                             {
-                                using (var reader = new DataReader(stream2.GetInputStreamAt(0)))
+                                using (var reader = new DataReader(stream.GetInputStreamAt(0)))
                                 {
-                                    var bytes = new byte[stream2.Size];
-                                    await reader.LoadAsync((uint)stream2.Size);
+                                    var bytes = new byte[stream.Size];
+                                    await reader.LoadAsync((uint)stream.Size);
                                     reader.ReadBytes(bytes);
 
                                     ImageCaptureSubject.OnNext(bytes);
@@ -111,7 +111,7 @@ namespace Hexapi.Service.Hardware{
                             {
                                 _logger.Log(LogLevel.Warn, $"ImageCapture => {e.Message}");
                             }
-                        }
+                        //}
 
                     }
                 }

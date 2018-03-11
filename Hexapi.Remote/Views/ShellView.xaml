@@ -34,7 +34,8 @@
 
         <Grid Grid.Row="0" Grid.Column="3" Width="Auto" Grid.ColumnSpan="2" HorizontalAlignment="Center">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -45,21 +46,15 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="35" />
             </Grid.RowDefinitions>
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Accelerometer/Gyro XYZ" Width="200" VerticalAlignment="Center"></TextBlock>
-            <TextBox Grid.Column="1" Grid.Row="0" Name="Ax" Height="28" Width="50"></TextBox>
-            <TextBox Grid.Column="2" Grid.Row="0" Name="Ay" Height="28" Width="50"></TextBox>
-            <TextBox Grid.Column="3" Grid.Row="0" Name="Az" Height="28" Width="50"></TextBox>
-            <TextBox Grid.Column="4" Grid.Row="0" Name="Gx" Height="28" Width="50"></TextBox>
-            <TextBox Grid.Column="5" Grid.Row="0" Name="Gy" Height="28" Width="50"></TextBox>
-            <TextBox Grid.Column="6" Grid.Row="0" Name="Gz" Height="28" Width="50"></TextBox>
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Yaw" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBox Grid.Column="1" Grid.Row="0" Name="Yaw" Height="28" Width="50"></TextBox>
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="Pitch" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBox Grid.Column="3" Grid.Row="0" Name="Pitch" Height="28" Width="50"></TextBox>
+            <TextBlock Grid.Column="4" Grid.Row="0" Text="Roll" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBox Grid.Column="5" Grid.Row="0" Name="Roll" Height="28" Width="50"></TextBox>
+            <TextBlock Grid.Column="6" Grid.Row="0" Text="Inches" Width="42" VerticalAlignment="Center"></TextBlock>
+            <TextBox Grid.Column="7" Grid.Row="0" Name="Inches" Height="28" Width="50"></TextBox>
         </Grid>
-        
-
-        <TextBlock Text="Left inches" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center"></TextBlock>
-        <TextBox Name="LeftInches" Grid.Row="1" Grid.Column="3" Height="28" Width="100"></TextBox>
-
-        <TextBlock Text="Right inches" Grid.Row="1" Grid.Column="4" VerticalAlignment="Center"></TextBlock>
-        <TextBox Name="RightInches" Grid.Row="1" Grid.Column="4" Height="28" Width="100"></TextBox>
 
         <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,15,0" FontSize="12"></CheckBox>
         <Slider Name="UpdateInterval" Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="750" Value="100" ></Slider>
@@ -88,7 +83,11 @@
         <TextBox Name="SubTopic" Grid.Row="8" Grid.Column="1" Height="28"></TextBox>
         <Button Name="Subscribe" Grid.Column="2" Grid.Row="8" Content="Subscribe" HorizontalAlignment="Center"></Button>
 
-        <Image Grid.Column="3" Grid.Row="2" Width="Auto" Height="Auto" Grid.RowSpan="8" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5" />
+        <Image Grid.Column="3" Grid.Row="1" Width="Auto" Height="Auto" Grid.RowSpan="9" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5">
+            <!--<Image.RenderTransform>
+                <RotateTransform Angle="180" />
+            </Image.RenderTransform>-->
+        </Image>
 
         <ScrollViewer Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Width="Auto" BorderBrush="Gray" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="5" Height="500">
             <TextBlock  HorizontalAlignment="Left" Text="{Binding Log}" FontSize="12" Padding="0" TextWrapping="Wrap" Foreground="LawnGreen"></TextBlock>

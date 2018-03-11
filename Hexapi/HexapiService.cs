@@ -25,36 +25,26 @@ namespace Hexapi.Service
     {
         internal static readonly SerialDeviceHelper SerialDeviceHelper = new SerialDeviceHelper();
 
-        private ILogger _logger = LogManager.GetCurrentClassLogger();
+        private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
 
         private readonly IkFilter _ikFilter = new IkFilter();
 
         private readonly XboxIkController _xboxController = new XboxIkController();
 
-        private readonly Gps _gps = new Gps();
-        private readonly GpsNavigator _gpsNavigator = new GpsNavigator();
-
         private readonly List<Task> _initializeTasks = new List<Task>();
         private readonly List<Task> _startTasks = new List<Task>();
         
-        private GpioController _gpioController;
-        private GpioPin _startButton;
-        private static GpioPin _resetGps1;
-        private static GpioPin _resetGps2;
+        private readonly RazorImu _razorImu = new RazorImu();
 
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly MaxbotixSonar _maxbotixSonar = new MaxbotixSonar();
 
-        private static bool _navRunning;
-
-        private bool _ignoreDisconnect;
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         private MqttClient _mqttClient;
 
         private readonly UsbCamera _usbCamera = new UsbCamera();
 
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
-
-        private readonly CurieReader _curieReader = new CurieReader();
 
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -74,14 +64,15 @@ namespace Hexapi.Service
 
             _initializeTasks.Add(_xboxController.InitializeAsync(_cancellationTokenSource.Token));
             _initializeTasks.Add(_ikFilter.InitializeAsync());
+            _initializeTasks.Add(_maxbotixSonar.InitializeAsync());
+            _initializeTasks.Add(_razorImu.InitializeAsync());
 
             _startTasks.Add(_ikFilter.StartAsync(_cancellationTokenSource.Token));
             _startTasks.Add(_usbCamera.StartAsync(_cancellationTokenSource.Token));
-            _startTasks.Add(_curieReader.StartAsync(_cancellationTokenSource.Token));
+            _startTasks.Add(_maxbotixSonar.StartAsync(_cancellationTokenSource.Token));
+            _startTasks.Add(_razorImu.StartAsync(_cancellationTokenSource.Token));
 
             await Task.WhenAll(_initializeTasks.ToArray());
-
-            
 
             if (_xboxController.IsConnected)
             {
@@ -95,39 +86,27 @@ namespace Hexapi.Service
             _disposables.Add(_usbCamera.ImageCaptureSubject
                 .Where(image => image != null)
                 .SubscribeOn(Scheduler.Default)
-                .Subscribe(
-                    async image =>
+                .Subscribe(bytes =>
                     {
-                        try
-                        {
-                            var r = await _mqttClient.PublishAsync(image, "hex-eye", TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                        }
-                        catch (Exception e)
-                         {
-
-                        }
-                        
+                        _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(1)).ToObservable().Subscribe();
                     }));
 
-            _disposables.Add(_curieReader.HexapiTelemetrySubject
-                .Where(hexapiTelemetry => hexapiTelemetry != null)
-                //.Distinct()
-                .Sample(TimeSpan.FromMilliseconds(150))
+            _disposables.Add(_razorImu.ImuDataSubject
+                .Where(imuData => imuData != null)
+                .Sample(TimeSpan.FromMilliseconds(50))
                 .SubscribeOn(Scheduler.Default)
-                .Subscribe(
-                    async hexapiTelemetry =>
-                    {
-                        try
-                        {
-                            var serializedData = JsonConvert.SerializeObject(hexapiTelemetry);
+                .Subscribe(imuData =>
+                {
+                    _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(1)).ToObservable().Subscribe();
+                }));
 
-                            var r = await _mqttClient.PublishAsync(serializedData, "hex-telemetry", TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                        }
-                        catch (Exception e)
-                        {
-                            //
-                        }
-                    }));
+            _disposables.Add(_maxbotixSonar.SonarSubject
+                .SubscribeOn(Scheduler.Default)
+                .Subscribe(sonar =>
+                {
+                    _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(1)).ToObservable().Subscribe();
+                }));
+
 
             await Task.WhenAll(_startTasks.ToArray());
         }
@@ -147,75 +126,5 @@ namespace Hexapi.Service
             }
         }
 
-        private async Task InitGpioAsync()
-        {
-            try
-            {
-                _gpioController = GpioController.GetDefault();
-
-                if (_gpioController == null)
-                {
-                    //await _display.WriteAsync("GPIO ?");
-                    return;
-                }
-            }
-            catch
-            {
-                //await _display.WriteAsync("GPIO Exception");
-                return;
-            }
-
-            _resetGps1 = _gpioController.OpenPin(24);
-            _resetGps2 = _gpioController.OpenPin(25);
-
-            _resetGps1.SetDriveMode(GpioPinDriveMode.Output);
-            _resetGps2.SetDriveMode(GpioPinDriveMode.Output);
-
-            _startButton = _gpioController.OpenPin(5);
-            _startButton.SetDriveMode(GpioPinDriveMode.Input);
-            _startButton.DebounceTimeout = TimeSpan.FromMilliseconds(500);
-            await Task.Delay(500);
-            _startButton.ValueChanged += StartButton_ValueChanged;
-        }
-
-        internal static async Task ResetGps()
-        {
-            _resetGps1.Write(GpioPinValue.Low);
-            _resetGps2.Write(GpioPinValue.Low);
-
-            await Task.Delay(1000);
-
-            _resetGps1.Write(GpioPinValue.High);
-            _resetGps2.Write(GpioPinValue.High);
-        }
-
-        private async void StartButton_ValueChanged(GpioPin sender, GpioPinValueChangedEventArgs args)
-        {
-            if (sender.PinNumber != 5 || args.Edge != GpioPinEdge.FallingEdge)
-                return;
-
-            //XboxController.Disconnected -= XboxControllerDisconnected;
-
-            //await _display.WriteAsync("Start pushed").ConfigureAwait(false);
-
-            if (_navRunning)
-            {
-                //await _display.WriteAsync("Busy", 2);
-                return;
-            }
-
-            _navRunning = true;
-
-            if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
-                _cancellationTokenSource = new CancellationTokenSource();
-
-            _ignoreDisconnect = true;
-            await _gpsNavigator.StartAsync(_cancellationTokenSource.Token, () =>
-            {
-                _navRunning = false;
-                _cancellationTokenSource.Cancel();
-                //_display.WriteAsync("Completed", 2).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
     }
 }
