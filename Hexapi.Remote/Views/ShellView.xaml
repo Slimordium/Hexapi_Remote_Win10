@@ -56,7 +56,7 @@
             <TextBox Grid.Column="7" Grid.Row="0" Name="Inches" Height="28" Width="50"></TextBox>
         </Grid>
 
-        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,15,0" FontSize="12"></CheckBox>
+        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" FontSize="12" MinWidth="75"></CheckBox>
         <Slider Name="UpdateInterval" Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="750" Value="100" ></Slider>
         <Button Name="SetUpdateInterval" Grid.Column="2" Grid.Row="1" Content="Set Update Interval" HorizontalAlignment="Center"></Button>
 
