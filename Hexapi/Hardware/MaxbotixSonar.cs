@@ -1,13 +1,10 @@
 ﻿using System;
-using System.IO;
 using System.Reactive.Subjects;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Devices.SerialCommunication;
 using Windows.Storage.Streams;
-using Hexapi.Shared.Imu;
 
 namespace Hexapi.Service.Hardware
 {
@@ -24,7 +21,7 @@ namespace Hexapi.Service.Hardware
         {
             SonarSubject = Subject.Synchronize(_sonarSyncSubject);
 
-            _serialDevice = await HexapiService.SerialDeviceHelper.GetSerialDeviceAsync("504WYP", 57600, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+            _serialDevice = await HexapiService.SerialDeviceHelper.GetSerialDeviceAsync("COM5", 57600, TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(1000));
 
             if (_serialDevice == null)
                 return;
@@ -64,10 +61,7 @@ namespace Hexapi.Service.Hardware
                     {
                        //
                     }
-
-                    
                 }
-                
             }
         }
     }

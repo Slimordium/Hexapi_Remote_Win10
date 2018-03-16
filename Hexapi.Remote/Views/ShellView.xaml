@@ -8,8 +8,8 @@
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Width="Auto" Height="Auto">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width=".5*" />
-            <ColumnDefinition Width="1.3*" />
+            <ColumnDefinition MinWidth="130" Width=".5*" />
+            <ColumnDefinition Width="1.1*" />
             <ColumnDefinition Width=".5*" />
             <ColumnDefinition Width="1.5*" />
             <ColumnDefinition Width="1.5*" />
@@ -42,21 +42,23 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="35" />
             </Grid.RowDefinitions>
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Yaw" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Yaw:" Width="30" VerticalAlignment="Center"></TextBlock>
             <TextBox Grid.Column="1" Grid.Row="0" Name="Yaw" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="2" Grid.Row="0" Text="Pitch" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="Pitch:" Width="30" Margin="5" VerticalAlignment="Center"></TextBlock>
             <TextBox Grid.Column="3" Grid.Row="0" Name="Pitch" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="4" Grid.Row="0" Text="Roll" Width="30" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Column="4" Grid.Row="0" Text="Roll:" Width="30" VerticalAlignment="Center"></TextBlock>
             <TextBox Grid.Column="5" Grid.Row="0" Name="Roll" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="6" Grid.Row="0" Text="Inches" Width="42" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Column="6" Grid.Row="0" Text="Sonar:" Width="42" VerticalAlignment="Center"></TextBlock>
             <TextBox Grid.Column="7" Grid.Row="0" Name="Inches" Height="28" Width="50"></TextBox>
+            <ComboBox Name="Resolution" Grid.Column="8" Grid.Row="0" SelectedItem="{Binding ResolutionSelectedValue}" Margin="15,0,0,0"></ComboBox>
         </Grid>
 
-        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" FontSize="12" MinWidth="75"></CheckBox>
+        <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" FontSize="12" MinWidth="85"></CheckBox>
         <Slider Name="UpdateInterval" Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="750" Value="100" ></Slider>
         <Button Name="SetUpdateInterval" Grid.Column="2" Grid.Row="1" Content="Set Update Interval" HorizontalAlignment="Center"></Button>
 
@@ -83,11 +85,7 @@
         <TextBox Name="SubTopic" Grid.Row="8" Grid.Column="1" Height="28"></TextBox>
         <Button Name="Subscribe" Grid.Column="2" Grid.Row="8" Content="Subscribe" HorizontalAlignment="Center"></Button>
 
-        <Image Grid.Column="3" Grid.Row="1" Width="Auto" Height="Auto" Grid.RowSpan="9" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5">
-            <!--<Image.RenderTransform>
-                <RotateTransform Angle="180" />
-            </Image.RenderTransform>-->
-        </Image>
+        <Image Grid.Column="3" Grid.Row="1" Width="Auto" Height="Auto" Grid.RowSpan="9" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5"></Image>
 
         <ScrollViewer Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Width="Auto" BorderBrush="Gray" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="5" Height="500">
             <TextBlock  HorizontalAlignment="Left" Text="{Binding Log}" FontSize="12" Padding="0" TextWrapping="Wrap" Foreground="LawnGreen"></TextBlock>

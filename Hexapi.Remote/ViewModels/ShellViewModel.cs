@@ -7,29 +7,62 @@ using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
-using Windows.UI.Core;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
 using Hardware.Xbox;
-using Hexapi.Shared;
-using Hexapi.Shared.Ik;
 using Hexapi.Shared.Ik.Enums;
 using Hexapi.Shared.Imu;
 using Newtonsoft.Json;
 using RxMqtt.Client;
+using RxMqtt.Shared;
 
-namespace Hexapi.Remote.ViewModels{
+namespace Hexapi.Remote.ViewModels
+{
     public class ShellViewModel : Conductor<object>
     {
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
+        private List<IDisposable> _disposables = new List<IDisposable>();
+
+        private IDisposable _loggingDisposable;
+
+        private MqttClient _mqttClient;
+
+        private double _pitch;
+
+        private double _roll;
+
+        private double _sonar;
+
+        private XboxIkController _xboxController;
+
+        private double _yaw;
+
+        public SystemConsoleRedirect SystemConsoleRedirect = new SystemConsoleRedirect();
+
+        public ShellViewModel()
+        {
+            Console.SetOut(SystemConsoleRedirect);
+
+            _loggingDisposable = SystemConsoleRedirect
+                .LogSubject
+                .ObserveOnDispatcher()
+                .Subscribe(s =>
+                {
+                    Log = s + Log;
+
+                    NotifyOfPropertyChange(nameof(Log));
+                });
+        }
+
         public string Log { get; set; }
 
-        public List<string> GaitType { get; set; } = new List<string> { "Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12" };
+        public List<string> GaitType { get; set; } =
+            new List<string> {"Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12"};
 
         public string GaitTypeSelectedValue { get; set; } = "TripleTripod16";
 
@@ -41,8 +74,6 @@ namespace Hexapi.Remote.ViewModels{
 
         public string PubMessage { get; set; }
 
-        private MqttClient _mqttClient;
-
         public int GaitSpeed { get; set; } = 30;
         public int BodyHeight { get; set; } = 60;
         public int LegLiftHeight { get; set; } = 60;
@@ -50,49 +81,8 @@ namespace Hexapi.Remote.ViewModels{
 
         public bool StreamChanges { get; set; }
 
-
-        private XboxIkController _xboxController;
-
         public WriteableBitmap HexImage { get; set; }
 
-        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-
-        private List<IDisposable> _disposables = new List<IDisposable>();
-
-        private double _ax;
-        public double Ax
-        {
-            get => _ax;
-            set
-            {
-                _ax = value;
-                NotifyOfPropertyChange(nameof(Ax));
-            }
-        }
-
-        private double _ay;
-        public double Ay
-        {
-            get => _ay;
-            set
-            {
-                _ay = value;
-                NotifyOfPropertyChange(nameof(Ay));
-            }
-        }
-
-        private double _az;
-        public double Az
-        {
-            get => _az;
-            set
-            {
-                _az = value;
-                NotifyOfPropertyChange(nameof(Az));
-            }
-        }
-
-        private double _yaw;
         public double Yaw
         {
             get => _yaw;
@@ -103,8 +93,6 @@ namespace Hexapi.Remote.ViewModels{
             }
         }
 
-
-        private double _pitch;
         public double Pitch
         {
             get => _pitch;
@@ -115,7 +103,6 @@ namespace Hexapi.Remote.ViewModels{
             }
         }
 
-        private double _roll;
         public double Roll
         {
             get => _roll;
@@ -126,35 +113,23 @@ namespace Hexapi.Remote.ViewModels{
             }
         }
 
-        private double _inches;
         public double Inches
         {
-            get => _inches;
+            get => _sonar;
             set
             {
-                _inches = value;
+                _sonar = value;
                 NotifyOfPropertyChange(nameof(Inches));
             }
-        }
-
-        public ShellViewModel()
-        {
         }
 
         public async Task SetUpdateInterval()
         {
             if (!StreamChanges)
             {
-                foreach (var disposable in _disposables)
-                {
-                    disposable.Dispose();
-                }
+                foreach (var disposable in _disposables) disposable.Dispose();
 
                 _disposables = new List<IDisposable>();
-
-                _cancellationTokenSource.Cancel();
-
-                _cancellationTokenSource = new CancellationTokenSource();
 
                 return;
             }
@@ -163,33 +138,73 @@ namespace Hexapi.Remote.ViewModels{
 
             await _xboxController.InitializeAsync(_cancellationTokenSource.Token);
 
-            if (_xboxController.IsConnected)
+            UpdateSubscriptions();
+        }
+
+        private async Task Connect()
+        {
+            _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 60000,
+                _cancellationTokenSource.Token);
+
+            var result = await _mqttClient.InitializeAsync();
+
+            Console.WriteLine($"MQTT Connection => '{result}'");
+
+            if (result != Status.Initialized)
+                return;
+
+            UpdateSubscriptions();
+        }
+
+        private void UpdateSubscriptions()
+        {
+            try
             {
+                foreach (var disposable in _disposables)
+                    disposable.Dispose();
+            }
+            catch (Exception)
+            {
+                //
+            }
 
+            _disposables = new List<IDisposable>();
+
+            Console.WriteLine($"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
+
+            if (_xboxController != null && _xboxController.IsConnected)
+            {
                 _disposables.Add(_xboxController.IkParamSubject
-                                    .Distinct()
-                                    .AsObservable()
-                                    .Sample(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)))
-                                    .SubscribeOn(Scheduler.Default)
-                                    .Subscribe(ik => _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik").ToObservable().Subscribe()));
+                    .Sample(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)))
+                    .SubscribeOn(Scheduler.Default)
+                    .Subscribe(ik =>
+                    {
+                        Enum.TryParse(typeof(GaitType), GaitTypeSelectedValue, true, out var gaitType);
 
-                await AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
+                        ik.GaitType = (GaitType) gaitType;
+                        ik.LegLiftHeight = LegLiftHeight;
+                        ik.GaitSpeedMs = GaitSpeed;
+                        ik.BodyPositionY = BodyHeight;
+
+                        _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik")
+                            .ToObservable()
+                            .Subscribe();
+                    }));
+
+                Console.WriteLine($"Publishing Xbox events every {UpdateInterval}ms");
             }
             else
             {
-                await AddToLog($"xBox controller not connected");
+                Console.WriteLine($"xBox controller not connected");
             }
-        }
 
-        private async Task AddToLog(string logEntry)
-        {
-            await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                () =>
-                {
-                    Log = logEntry + Environment.NewLine + Log;
+            _disposables.Add(_mqttClient.GetPublishByteObservable("hex-eye").ObserveOnDispatcher().Subscribe(buffer =>
+            {
+                ImageHandler(buffer).ToObservable().Subscribe();
+            }));
 
-                    NotifyOfPropertyChange(nameof(Log));
-                });
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-imu").ObserveOnDispatcher().Subscribe(Imu));
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-sonar").ObserveOnDispatcher().Subscribe(Sonar));
         }
 
         public async Task BrokerConnect()
@@ -197,26 +212,13 @@ namespace Hexapi.Remote.ViewModels{
             try
             {
                 if (_mqttClient == null)
-                {
-                    _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 60000, _cancellationTokenSource.Token);
-
-                    var result = await _mqttClient.InitializeAsync();
-
-                    _mqttClient.Subscribe(ImageHandler, "hex-eye");
-
-                    _mqttClient.Subscribe(Imu, "hex-imu");
-
-                    _mqttClient.Subscribe(Sonar, "hex-sonar");
-
-                    await AddToLog($"Connection {result}");
-                }
+                    await Connect();
                 else
-                    await AddToLog("Already connected");
-
+                    Console.WriteLine("Disconnecting/reconnecting...");
             }
             catch (Exception e)
             {
-                await AddToLog(e.Message);
+                Console.WriteLine(e.Message);
             }
         }
 
@@ -230,7 +232,7 @@ namespace Hexapi.Remote.ViewModels{
                 Pitch = imuData.Pitch;
                 Roll = imuData.Roll;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //Dont care
             }
@@ -242,39 +244,34 @@ namespace Hexapi.Remote.ViewModels{
             {
                 Inches = Convert.ToInt32(inches);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //Dont care
             }
         }
 
-        private async void ImageHandler(byte[] bytes)
+        private async Task ImageHandler(byte[] buffer)
         {
-            //Run on UI thread
-            await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                async () =>
+            try
+            {
+                using (var imageBuffer = buffer.AsBuffer().AsStream().AsRandomAccessStream())
                 {
-                    try
+                    using (var bitmapStream = await Reencode(imageBuffer, PhotoOrientation.Rotate180))
                     {
-                        using (var imageBuffer = bytes.AsBuffer().AsStream().AsRandomAccessStream())
-                        {
-                            using (var b = await Reencode(imageBuffer, PhotoOrientation.Rotate180))
-                            {
-                                var decoder = await BitmapDecoder.CreateAsync(b);
-                                b.Seek(0);
+                        var decoder = await BitmapDecoder.CreateAsync(bitmapStream);
+                        bitmapStream.Seek(0);
 
-                                HexImage = new WriteableBitmap((int)decoder.PixelHeight, (int)decoder.PixelWidth);
-                                await HexImage.SetSourceAsync(b);
+                        HexImage = new WriteableBitmap((int) decoder.PixelHeight, (int) decoder.PixelWidth);
+                        await HexImage.SetSourceAsync(bitmapStream);
 
-                                NotifyOfPropertyChange(nameof(HexImage));
-                            }
-                        }
+                        NotifyOfPropertyChange(nameof(HexImage));
                     }
-                    catch (Exception e)
-                    {
-                        await AddToLog(e.Message);
-                    }
-            });
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         private static async Task<IRandomAccessStream> Reencode(IRandomAccessStream stream, PhotoOrientation photoOrientation)
@@ -290,17 +287,18 @@ namespace Hexapi.Remote.ViewModels{
                     var pixelData = await decoder.GetPixelDataAsync(
                         BitmapPixelFormat.Rgba8,
                         BitmapAlphaMode.Straight,
-                        new BitmapTransform { ScaledHeight = decoder.PixelHeight, ScaledWidth = decoder.PixelWidth },
+                        new BitmapTransform {ScaledHeight = decoder.PixelHeight, ScaledWidth = decoder.PixelWidth},
                         ExifOrientationMode.RespectExifOrientation,
                         ColorManagementMode.DoNotColorManage);
 
                     var encoder = await BitmapEncoder.CreateForTranscodingAsync(outputStream, decoder);
 
-                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth, decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
+                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth,
+                        decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
 
                     var properties = new BitmapPropertySet
                     {
-                        { "System.Photo.Orientation", new BitmapTypedValue(photoOrientation, PropertyType.UInt16) },
+                        {"System.Photo.Orientation", new BitmapTypedValue(photoOrientation, PropertyType.UInt16)}
                     };
 
                     await encoder.BitmapProperties.SetPropertiesAsync(properties);
@@ -313,50 +311,32 @@ namespace Hexapi.Remote.ViewModels{
             return randomAccessStream;
         }
 
-        public async Task PublishUpdate()
-        {
-            Enum.TryParse(typeof(GaitType), GaitTypeSelectedValue, true, out var gaitType);
-
-            var ikParams = new IkParams(true)
-            {
-                GaitType = (GaitType) gaitType,
-                LegLiftHeight = LegLiftHeight,
-                GaitSpeedMs = GaitSpeed,
-                BodyPositionY = BodyHeight,
-            };
-
-            var ack = await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ikParams), "hex/ik").ConfigureAwait(false);
-        }
-
         public async Task PublishMessage()
         {
             if (string.IsNullOrEmpty(PubMessage) || string.IsNullOrEmpty(PubTopic))
             {
-                await AddToLog("Please enter message and topic first");
+                Console.WriteLine("Please enter message and topic first");
                 return;
             }
 
-            var ack = await _mqttClient.PublishAsync(PubMessage, PubTopic);
+            await _mqttClient.PublishAsync(PubMessage, PubTopic);
 
-            await AddToLog("PublishAck");
+            Console.WriteLine("PublishAck");
         }
 
-        public async Task Subscribe()
+        public void Subscribe()
         {
             if (string.IsNullOrEmpty(SubTopic))
             {
-                await AddToLog("Need a topic first");
+                Console.WriteLine("Need a topic first");
                 return;
             }
 
-            _mqttClient.Subscribe(IncomingPublish, SubTopic);
+            _disposables.Add(_mqttClient.GetPublishStringObservable(SubTopic)
+                .ObserveOnDispatcher()
+                .Subscribe(Console.WriteLine));
 
-            await AddToLog($"Subscribed to {SubTopic}");
-        }
-
-        private void IncomingPublish(string s)
-        {
-            AddToLog(s).ToObservable().Subscribe();
+            Console.WriteLine($"Subscribed to {SubTopic}");
         }
     }
 }

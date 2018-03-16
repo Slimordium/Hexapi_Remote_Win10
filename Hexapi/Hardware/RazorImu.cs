@@ -75,11 +75,8 @@ namespace Hexapi.Service.Hardware
                     {
                         //
                     }
-                        
                 }
-                
             }
         }
-
     }
 }
