@@ -78,25 +78,25 @@ namespace Hexapi.Service
             _disposables.Add(_usbCamera.ImageCaptureSubject
                 .Where(image => image != null)
                 .SubscribeOn(Scheduler.Default)
-                .Subscribe(bytes =>
+                .Subscribe(async bytes =>
                 {
-                    _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(2)).ToObservable().Subscribe();
+                    await _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(2));
                 }));
 
             _disposables.Add(_razorImu.ImuDataSubject
                 .Where(imuData => imuData != null)
                 .Sample(TimeSpan.FromMilliseconds(75))
                 .SubscribeOn(Scheduler.Default)
-                .Subscribe(imuData =>
+                .Subscribe(async imuData =>
                 {
-                    _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(2)).ToObservable().Subscribe();
+                    await _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(2));
                 }));
 
             _disposables.Add(_maxbotixSonar.SonarSubject
                 .SubscribeOn(Scheduler.Default)
-                .Subscribe(sonar =>
+                .Subscribe(async sonar =>
                 {
-                    _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(2)).ToObservable().Subscribe();
+                    await _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(2));
                 }));
 
             await Task.WhenAll(_startTasks.ToArray());
