@@ -20,7 +20,7 @@ namespace Hexapi.Host
         private WinRTContainer _container;
         //private HexapodService _hexapodService;
 
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        //private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public App()
         {
@@ -45,13 +45,7 @@ namespace Hexapi.Host
 
             _container.Singleton<ShellViewModel>();
 
-            await Task.Factory.StartNew(async () =>
-            {
-                var _hexapodService = new Hexapi.Service.HexapiService();
-
-                await _hexapodService.StartAsync(_cancellationTokenSource.Token);
-            }
-            , TaskCreationOptions.LongRunning);
+           
         }
 
         protected override void PrepareViewFirst(Frame rootFrame)

@@ -16,6 +16,7 @@ using Hexapi.Shared.Ik;
 using Newtonsoft.Json;
 using NLog;
 using RxMqtt.Client;
+using RxMqtt.Shared;
 
 namespace Hexapi.Service
 {
@@ -23,7 +24,6 @@ namespace Hexapi.Service
     {
         internal static readonly SerialDeviceHelper SerialDeviceHelper = new SerialDeviceHelper();
 
-        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
 
         private readonly List<Task> _startTasks = new List<Task>();
@@ -39,48 +39,90 @@ namespace Hexapi.Service
 
         private MqttClient _mqttClient;
 
+        private readonly string _brokerIp;
+
+        private bool _disposed;
+
+        private readonly object _disposedLock = new object();
+
+        public HexapiService(string brokerIp)
+        {
+            _brokerIp = brokerIp;
+        }
+
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            var status = Status.Error;
+
             try
             {
-                _mqttClient = new MqttClient("Hexapi", "172.16.0.245", 1883, 60000, _cancellationTokenSource.Token);
+                _mqttClient = new MqttClient("Hexapi", _brokerIp, 1883, 60000, cancellationToken);
 
-                var status = await _mqttClient.InitializeAsync();
+                status = await _mqttClient.InitializeAsync();
 
                 _logger.Log(LogLevel.Info, $"MQTT Client Started => {status}");
-
-                _disposables.Add(_mqttClient.GetPublishStringObservable("hex-ik").SubscribeOn(Scheduler.Default).Subscribe(IkParamsSubscriptionEventHandler));
             }
             catch (Exception e)
             {
                 _logger.Log(LogLevel.Error, e.Message);
             }
 
-            _initializeTasks.Add(_xboxController.InitializeAsync(_cancellationTokenSource.Token));
+            cancellationToken.Register(DisposeSubscriptions);
+
+            await Task.Delay(1500, cancellationToken);
+
+            _initializeTasks.Add(_xboxController.InitializeAsync(cancellationToken));
             _initializeTasks.Add(_ikFilter.InitializeAsync());
             _initializeTasks.Add(_maxbotixSonar.InitializeAsync());
             _initializeTasks.Add(_razorImu.InitializeAsync());
 
-            _startTasks.Add(_ikFilter.StartAsync(_cancellationTokenSource.Token));
-            _startTasks.Add(_usbCamera.StartAsync(_cancellationTokenSource.Token));
-            _startTasks.Add(_maxbotixSonar.StartAsync(_cancellationTokenSource.Token));
-            _startTasks.Add(_razorImu.StartAsync(_cancellationTokenSource.Token));
+            _startTasks.Add(_ikFilter.StartAsync(cancellationToken));
+            _startTasks.Add(_usbCamera.StartAsync(cancellationToken));
+            _startTasks.Add(_maxbotixSonar.StartAsync(cancellationToken));
+            _startTasks.Add(_razorImu.StartAsync(cancellationToken));
 
             await Task.WhenAll(_initializeTasks.ToArray());
 
+            if (status == Status.Initialized)
+            {
+                Subscribe();
+            }
+            else
+            {
+                _logger.Log(LogLevel.Error, "Not subscribing, MQTT connection failed");
+            }
+
             if (_xboxController.IsConnected)
+            {
                 _ikFilter.IkObservable = _xboxController.IkParamSubject
-                    .Distinct()
-                    .Sample(TimeSpan.FromMilliseconds(100))
-                    .SubscribeOn(Scheduler.Default)
-                    .AsObservable();
+                                        .Distinct()
+                                        .Sample(TimeSpan.FromMilliseconds(100))
+                                        .SubscribeOn(Scheduler.Default)
+                                        .AsObservable();
+            }
+
+            await Task.WhenAll(_startTasks.ToArray());
+        }
+
+        private void Subscribe()
+        {
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-ik")
+                .SubscribeOn(Scheduler.Default)
+                .Subscribe(IkParamsSubscriptionEventHandler));
 
             _disposables.Add(_usbCamera.ImageCaptureSubject
                 .Where(image => image != null)
                 .SubscribeOn(Scheduler.Default)
                 .Subscribe(async bytes =>
                 {
-                    await _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(2));
+                    try
+                    {
+                        await _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(2));
+                    }
+                    catch (TimeoutException)
+                    {
+                        DisposeSubscriptions();
+                    }
                 }));
 
             _disposables.Add(_razorImu.ImuDataSubject
@@ -89,17 +131,49 @@ namespace Hexapi.Service
                 .SubscribeOn(Scheduler.Default)
                 .Subscribe(async imuData =>
                 {
-                    await _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(2));
+                    try
+                    {
+                        await _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(2));
+                    }
+                    catch (TimeoutException)
+                    {
+                        DisposeSubscriptions();
+                    }
+
                 }));
 
             _disposables.Add(_maxbotixSonar.SonarSubject
                 .SubscribeOn(Scheduler.Default)
                 .Subscribe(async sonar =>
                 {
-                    await _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(2));
-                }));
+                    try
+                    {
+                        await _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(2));
+                    }
+                    catch (TimeoutException)
+                    {
+                        DisposeSubscriptions();
+                    }
 
-            await Task.WhenAll(_startTasks.ToArray());
+                }));
+        }
+
+        private void DisposeSubscriptions()
+        {
+            lock (_disposedLock)
+            {
+                if (_disposed)
+                    return;
+
+                _logger.Log(LogLevel.Error, "Timeout, disposing subscriptions");
+
+                _disposed = true;
+
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
         }
 
         private void IkParamsSubscriptionEventHandler(string s)
@@ -110,7 +184,7 @@ namespace Hexapi.Service
 
                 _ikFilter.IkRemoteSubject.OnNext(ikParams);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //
             }

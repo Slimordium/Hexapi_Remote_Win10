@@ -14,9 +14,11 @@ using Windows.Storage.Streams;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
 using Hardware.Xbox;
+using Hexapi.Shared;
 using Hexapi.Shared.Ik.Enums;
 using Hexapi.Shared.Imu;
 using Newtonsoft.Json;
+using NLog;
 using RxMqtt.Client;
 using RxMqtt.Shared;
 
@@ -41,25 +43,14 @@ namespace Hexapi.Remote.ViewModels
         private XboxIkController _xboxController;
 
         private double _yaw;
+        public IObservableCollection<string> Log { get; set; } = new BindableCollection<string>();
 
-        public SystemConsoleRedirect SystemConsoleRedirect = new SystemConsoleRedirect();
+        private ILogger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         public ShellViewModel()
         {
-            Console.SetOut(SystemConsoleRedirect);
 
-            _loggingDisposable = SystemConsoleRedirect
-                .LogSubject
-                .ObserveOnDispatcher()
-                .Subscribe(s =>
-                {
-                    Log = s + Log;
-
-                    NotifyOfPropertyChange(nameof(Log));
-                });
         }
-
-        public string Log { get; set; }
 
         public List<string> GaitType { get; set; } =
             new List<string> {"Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12"};
@@ -143,12 +134,25 @@ namespace Hexapi.Remote.ViewModels
 
         private async Task Connect()
         {
-            _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 60000,
-                _cancellationTokenSource.Token);
+            _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 60000, _cancellationTokenSource.Token);
 
             var result = await _mqttClient.InitializeAsync();
 
-            Console.WriteLine($"MQTT Connection => '{result}'");
+            if (NLog.Targets.Rx.RxTarget.LogObservable != null)
+            {
+                _loggingDisposable = NLog.Targets.Rx.RxTarget
+                    .LogObservable
+                    .ObserveOnDispatcher()
+                    .Subscribe(message =>
+                    {
+                        Log.Insert(0, message);
+
+                        if (Log.Count > 1000)
+                            Log.RemoveAt(1000);
+                    });
+            }
+            
+            _logger.Log(LogLevel.Info, $"MQTT Connection => '{result}'");
 
             if (result != Status.Initialized)
                 return;
@@ -170,7 +174,7 @@ namespace Hexapi.Remote.ViewModels
 
             _disposables = new List<IDisposable>();
 
-            Console.WriteLine($"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
+            _logger.Log(LogLevel.Info, $"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
 
             if (_xboxController != null && _xboxController.IsConnected)
             {
@@ -191,11 +195,11 @@ namespace Hexapi.Remote.ViewModels
                             .Subscribe();
                     }));
 
-                Console.WriteLine($"Publishing Xbox events every {UpdateInterval}ms");
+                _logger.Log(LogLevel.Info, $"Publishing Xbox events every {UpdateInterval}ms");
             }
             else
             {
-                Console.WriteLine($"xBox controller not connected");
+                _logger.Log(LogLevel.Info, $"xBox controller not connected");
             }
 
             _disposables.Add(_mqttClient.GetPublishByteObservable("hex-eye").ObserveOnDispatcher().Subscribe(buffer =>
@@ -214,11 +218,11 @@ namespace Hexapi.Remote.ViewModels
                 if (_mqttClient == null)
                     await Connect();
                 else
-                    Console.WriteLine("Disconnecting/reconnecting...");
+                    _logger.Log(LogLevel.Info, "Disconnecting/reconnecting...");
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                _logger.Log(LogLevel.Info, e.Message);
             }
         }
 
@@ -270,7 +274,7 @@ namespace Hexapi.Remote.ViewModels
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                _logger.Log(LogLevel.Info, e.Message);
             }
         }
 
@@ -315,28 +319,32 @@ namespace Hexapi.Remote.ViewModels
         {
             if (string.IsNullOrEmpty(PubMessage) || string.IsNullOrEmpty(PubTopic))
             {
-                Console.WriteLine("Please enter message and topic first");
+                _logger.Log(LogLevel.Info, "Please enter message and topic first");
                 return;
             }
 
             await _mqttClient.PublishAsync(PubMessage, PubTopic);
 
-            Console.WriteLine("PublishAck");
+            _logger.Log(LogLevel.Info, "PublishAck");
         }
 
         public void Subscribe()
         {
             if (string.IsNullOrEmpty(SubTopic))
             {
-                Console.WriteLine("Need a topic first");
+                _logger.Log(LogLevel.Info, "Need a topic first");
                 return;
             }
 
             _disposables.Add(_mqttClient.GetPublishStringObservable(SubTopic)
                 .ObserveOnDispatcher()
-                .Subscribe(Console.WriteLine));
+                .Subscribe(
+                    message =>
+                    {
+                        _logger.Log(LogLevel.Info, message);
+                    }));
 
-            Console.WriteLine($"Subscribed to {SubTopic}");
+            _logger.Log(LogLevel.Info, $"Subscribed to {SubTopic}");
         }
     }
 }

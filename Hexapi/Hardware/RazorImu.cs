@@ -48,7 +48,7 @@ namespace Hexapi.Service.Hardware
 
                 var readings = Encoding.ASCII.GetString(buffer);
 
-                var yprReadings = readings.Replace("\r", "").Replace("\n", "").Replace("YPR=", "").Split('#');
+                var yprReadings = readings.Replace("\r", "").Replace("\n", "").Replace("Y", "").Replace("P", "").Replace("R", "").Replace("=", "").Split('#');
 
                 foreach (var reading in yprReadings)
                 {
@@ -62,11 +62,20 @@ namespace Hexapi.Service.Hardware
                         if (splitYpr.Length != 3)
                             continue;
 
+                        if (!double.TryParse(splitYpr[0], out var yaw))
+                            continue;
+
+                        if (!double.TryParse(splitYpr[0], out var pitch))
+                            continue;
+
+                        if (!double.TryParse(splitYpr[0], out var roll))
+                            continue;
+
                         var imuData = new ImuData
                         {
-                            Yaw = Convert.ToDouble(splitYpr[0]),
-                            Pitch = Convert.ToDouble(splitYpr[1]),
-                            Roll = Convert.ToDouble(splitYpr[2])
+                            Yaw = yaw,
+                            Pitch = pitch,
+                            Roll = roll
                         };
 
                         ImuDataSubject.OnNext(imuData);

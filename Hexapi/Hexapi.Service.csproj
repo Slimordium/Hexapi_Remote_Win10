@@ -137,7 +137,10 @@
       <Version>11.0.1</Version>
     </PackageReference>
     <PackageReference Include="NLog">
-      <Version>4.5.0-rc04</Version>
+      <Version>4.5.0-rc07</Version>
+    </PackageReference>
+    <PackageReference Include="NLog.Extensions.Logging">
+      <Version>1.0.0-rtm-rc7</Version>
     </PackageReference>
     <PackageReference Include="RxMqtt.Client">
       <Version>1.0.0-rc8</Version>
@@ -165,8 +168,16 @@
       <Name>Hexapi.Shared</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Hexapi.Service.nuspec">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

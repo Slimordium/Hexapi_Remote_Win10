@@ -87,10 +87,17 @@
 
         <Image Grid.Column="3" Grid.Row="1" Width="Auto" Height="Auto" Grid.RowSpan="9" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5"></Image>
 
-        <ScrollViewer Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Width="Auto" BorderBrush="Gray" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="5" Height="500">
-            <TextBlock  HorizontalAlignment="Left" Text="{Binding Log}" FontSize="12" Padding="0" TextWrapping="Wrap" Foreground="LawnGreen"></TextBlock>
-        </ScrollViewer>
-        
+        <ListView Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Height="500" ItemsSource="{Binding Log}" Width="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="0" Padding="0">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                   <Setter Property="Foreground" Value="Green"></Setter>
+                   <Setter Property="FontSize" Value="12"></Setter>
+                   <Setter Property="Margin" Value="2"></Setter>
+                   <Setter Property="Height" Value="15"></Setter>
+                   <Setter Property="Padding" Value="0"></Setter>
+                </Style>
+            </ListView.ItemContainerStyle>
+        </ListView>
 
     </Grid>
 </Page>
