@@ -27,5 +27,7 @@
         <Button Name="Start" Grid.Column="2" Grid.Row="0" Content="Connect" HorizontalAlignment="Center"></Button>
 
         <ListView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Grid.RowSpan="3" Height="500" ItemsSource="{Binding Log}" Foreground="ForestGreen" FontSize="8" Width="Auto"/>
+        
+        <MediaElement Grid.Row="3" Grid.Column="0" Name="MediaElement"></MediaElement>
     </Grid>
 </Page>

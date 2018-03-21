@@ -52,7 +52,7 @@ namespace Hexapi.Remote.ViewModels
 
         public MediaElement MediaElement { get; } = new MediaElement();
 
-        public string TextForSpeach { get; set; } = "Test";
+        public string TextForSpeech { get; set; } = "Test";
 
         public List<string> GaitType { get; set; } = new List<string> {"Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12"};
 
@@ -211,7 +211,7 @@ namespace Hexapi.Remote.ViewModels
 
         public async Task TextToSpeech(string text)
         {
-            var t = TextForSpeach;
+            var t = TextForSpeech;
 
             if (!string.IsNullOrEmpty(text))
                 t = text;
