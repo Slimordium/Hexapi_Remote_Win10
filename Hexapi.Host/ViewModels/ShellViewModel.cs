@@ -44,8 +44,6 @@ namespace Hexapi.Host.ViewModels{
 
         public async Task Start()
         {
-           
-
             _hexapodService = new Service.HexapiService(BrokerIp);
 
             await _hexapodService.StartAsync(_cancellationTokenSource.Token).ConfigureAwait(false);

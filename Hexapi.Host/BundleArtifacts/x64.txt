@@ -1,0 +1,2 @@
+MainPackage=C:\Users\lwatkins\Source\Repos\Hexapi_Remote_Win10\Hexapi.Host\bin\x64\Debug\Hexapi.Host_1.0.0.0_x64_Debug.appx
+SymbolPackage=C:\Users\lwatkins\Source\Repos\Hexapi_Remote_Win10\Hexapi.Host\AppPackages\Hexapi.Host_1.0.0.0_Debug_Test\Hexapi.Host_1.0.0.0_x64_Debug.appxsym

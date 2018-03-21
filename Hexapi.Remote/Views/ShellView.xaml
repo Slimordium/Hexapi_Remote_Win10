@@ -98,6 +98,7 @@
                 </Style>
             </ListView.ItemContainerStyle>
         </ListView>
-
+        <MediaElement Grid.Column="0" Grid.Row="9" Name="MediaElement"></MediaElement>
     </Grid>
+    
 </Page>

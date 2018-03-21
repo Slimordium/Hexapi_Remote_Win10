@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -9,8 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
+using Windows.Media.SpeechSynthesis;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
+using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
 using Hardware.Xbox;
@@ -24,7 +27,7 @@ using RxMqtt.Shared;
 
 namespace Hexapi.Remote.ViewModels
 {
-    public class ShellViewModel : Conductor<object>
+    public class ShellViewModel : Screen
     {
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
@@ -45,15 +48,13 @@ namespace Hexapi.Remote.ViewModels
         private double _yaw;
         public IObservableCollection<string> Log { get; set; } = new BindableCollection<string>();
 
-        private ILogger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private readonly ILogger _logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public ShellViewModel()
-        {
+        public MediaElement MediaElement { get; } = new MediaElement();
 
-        }
+        public string TextForSpeach { get; set; } = "Test";
 
-        public List<string> GaitType { get; set; } =
-            new List<string> {"Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12"};
+        public List<string> GaitType { get; set; } = new List<string> {"Tripod8", "TripleTripod12", "TripleTripod16", "Wave24", "Ripple12"};
 
         public string GaitTypeSelectedValue { get; set; } = "TripleTripod16";
 
@@ -140,19 +141,15 @@ namespace Hexapi.Remote.ViewModels
 
             if (NLog.Targets.Rx.RxTarget.LogObservable != null)
             {
+                AddToLog($"Subscribed to NLog RX target");
+
                 _loggingDisposable = NLog.Targets.Rx.RxTarget
                     .LogObservable
                     .ObserveOnDispatcher()
-                    .Subscribe(message =>
-                    {
-                        Log.Insert(0, message);
-
-                        if (Log.Count > 1000)
-                            Log.RemoveAt(1000);
-                    });
+                    .Subscribe(AddToLog);
             }
-            
-            _logger.Log(LogLevel.Info, $"MQTT Connection => '{result}'");
+
+            AddToLog($"MQTT Connection => '{result}'");
 
             if (result != Status.Initialized)
                 return;
@@ -174,7 +171,7 @@ namespace Hexapi.Remote.ViewModels
 
             _disposables = new List<IDisposable>();
 
-            _logger.Log(LogLevel.Info, $"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
+            AddToLog($"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
 
             if (_xboxController != null && _xboxController.IsConnected)
             {
@@ -195,20 +192,38 @@ namespace Hexapi.Remote.ViewModels
                             .Subscribe();
                     }));
 
-                _logger.Log(LogLevel.Info, $"Publishing Xbox events every {UpdateInterval}ms");
+                AddToLog($"Publishing Xbox events every {UpdateInterval}ms");
             }
             else
             {
-                _logger.Log(LogLevel.Info, $"xBox controller not connected");
+                AddToLog($"xBox controller not connected");
             }
 
-            _disposables.Add(_mqttClient.GetPublishByteObservable("hex-eye").ObserveOnDispatcher().Subscribe(buffer =>
-            {
-                ImageHandler(buffer).ToObservable().Subscribe();
-            }));
+            _disposables.Add(_mqttClient.GetPublishByteObservable("hex-eye").ObserveOnDispatcher().Subscribe(
+                async buffer =>
+                {
+                    await ImageHandler(buffer);
+                }));
 
             _disposables.Add(_mqttClient.GetPublishStringObservable("hex-imu").ObserveOnDispatcher().Subscribe(Imu));
             _disposables.Add(_mqttClient.GetPublishStringObservable("hex-sonar").ObserveOnDispatcher().Subscribe(Sonar));
+        }
+
+        public async Task TextToSpeech(string text)
+        {
+            var t = TextForSpeach;
+
+            if (!string.IsNullOrEmpty(text))
+                t = text;
+
+            using (var speech = new SpeechSynthesizer())
+            {
+                speech.Voice = SpeechSynthesizer.AllVoices.First(gender => gender.Gender == VoiceGender.Female);
+
+                var stream = await speech.SynthesizeTextToStreamAsync(t);
+                MediaElement.SetSource(stream, stream.ContentType);
+                MediaElement.Play();
+            }
         }
 
         public async Task BrokerConnect()
@@ -216,13 +231,15 @@ namespace Hexapi.Remote.ViewModels
             try
             {
                 if (_mqttClient == null)
+                {
                     await Connect();
+                }
                 else
-                    _logger.Log(LogLevel.Info, "Disconnecting/reconnecting...");
+                    AddToLog("Disconnecting/reconnecting...");
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Info, e.Message);
+                AddToLog(e.Message);
             }
         }
 
@@ -274,7 +291,7 @@ namespace Hexapi.Remote.ViewModels
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Info, e.Message);
+                AddToLog(e.Message);
             }
         }
 
@@ -297,8 +314,7 @@ namespace Hexapi.Remote.ViewModels
 
                     var encoder = await BitmapEncoder.CreateForTranscodingAsync(outputStream, decoder);
 
-                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth,
-                        decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
+                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth, decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
 
                     var properties = new BitmapPropertySet
                     {
@@ -319,29 +335,39 @@ namespace Hexapi.Remote.ViewModels
         {
             if (string.IsNullOrEmpty(PubMessage) || string.IsNullOrEmpty(PubTopic))
             {
-                _logger.Log(LogLevel.Info, "Please enter message and topic first");
+                AddToLog("Please enter message and topic first");
                 return;
             }
 
             await _mqttClient.PublishAsync(PubMessage, PubTopic);
 
-            _logger.Log(LogLevel.Info, "PublishAck");
+            AddToLog("PublishAck");
+        }
+
+        private void AddToLog(string message)
+        {
+            Log.Insert(0, message);
+
+            if (Log.Count > 1000)
+                Log.RemoveAt(1000);
         }
 
         public void Subscribe()
         {
             if (string.IsNullOrEmpty(SubTopic))
             {
-                _logger.Log(LogLevel.Info, "Need a topic first");
+                Log.Insert(0, "Need a topic first");
                 return;
             }
 
             _disposables.Add(_mqttClient.GetPublishStringObservable(SubTopic)
                 .ObserveOnDispatcher()
                 .Subscribe(
-                    message =>
+                    async message =>
                     {
-                        _logger.Log(LogLevel.Info, message);
+                        AddToLog(message);
+
+                        await TextToSpeech(message);
                     }));
 
             _logger.Log(LogLevel.Info, $"Subscribed to {SubTopic}");
