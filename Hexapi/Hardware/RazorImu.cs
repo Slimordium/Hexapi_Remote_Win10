@@ -65,10 +65,10 @@ namespace Hexapi.Service.Hardware
                         if (!double.TryParse(splitYpr[0], out var yaw))
                             continue;
 
-                        if (!double.TryParse(splitYpr[0], out var pitch))
+                        if (!double.TryParse(splitYpr[1], out var pitch))
                             continue;
 
-                        if (!double.TryParse(splitYpr[0], out var roll))
+                        if (!double.TryParse(splitYpr[2], out var roll))
                             continue;
 
                         var imuData = new ImuData

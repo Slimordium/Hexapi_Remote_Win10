@@ -127,6 +127,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="HexapiService.cs" />
     <Compile Include="Hardware\UsbCamera.cs" />
+    <Compile Include="TextToSpeech.cs" />
     <EmbeddedResource Include="Properties\Test2.rd.xml" />
   </ItemGroup>
   <ItemGroup>

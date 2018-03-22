@@ -22,8 +22,6 @@ namespace Hexapi.Host.ViewModels{
     {
         private Service.HexapiService _hexapodService;
 
-        private RxMqtt.Client.MqttClient _rxMqttClient;
-
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public string BrokerIp { get; set; } = "172.16.0.245";
@@ -49,8 +47,8 @@ namespace Hexapi.Host.ViewModels{
                     {
                         Log.Insert(0, s);
 
-                        if (Log.Count > 1000)
-                            Log.RemoveAt(1000);
+                        if (Log.Count > 500)
+                            Log.RemoveAt(500);
                     });
             }
         }
@@ -62,6 +60,7 @@ namespace Hexapi.Host.ViewModels{
                 speech.Voice = SpeechSynthesizer.AllVoices.First(gender => gender.Gender == VoiceGender.Female);
 
                 var stream = await speech.SynthesizeTextToStreamAsync(text);
+                MediaElement.Volume = 100;
                 MediaElement.SetSource(stream, stream.ContentType);
                 MediaElement.Play();
             }
@@ -72,24 +71,9 @@ namespace Hexapi.Host.ViewModels{
             if (string.IsNullOrEmpty(BrokerIp))
                 return;
 
-            _rxMqttClient = new MqttClient("hex-speak", BrokerIp, 1883, 123, CancellationToken.None);
-
-            var status = await _rxMqttClient.InitializeAsync();
-
-            if (status == Status.Initialized)
-            {
-                _speechDisposable = _rxMqttClient.GetPublishStringObservable("hex-speech")
-                    .ObserveOnDispatcher()
-                    .Subscribe(async s =>
-                    {
-                        await TextToSpeech(s);
-                    });
-            }
-
             _hexapodService = new Service.HexapiService(BrokerIp);
 
-            await _hexapodService.StartAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+           await _hexapodService.StartAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
         }
-
     }
 }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,6 +36,8 @@ namespace Hexapi.Service
         private readonly XboxIkController _xboxController = new XboxIkController();
         private readonly RazorImu _razorImu = new RazorImu();
 
+        private readonly TextToSpeech _textToSpeech = new TextToSpeech();
+
         private readonly IkFilter _ikFilter = new IkFilter();
 
         private MqttClient _mqttClient;
@@ -44,6 +47,8 @@ namespace Hexapi.Service
         private bool _disposed;
 
         private readonly object _disposedLock = new object();
+
+        public ISubject<string> SpeechSubject { get; } = new Subject<string>();
 
         public HexapiService(string brokerIp)
         {
@@ -68,8 +73,6 @@ namespace Hexapi.Service
             }
 
             cancellationToken.Register(DisposeSubscriptions);
-
-            await Task.Delay(1500, cancellationToken);
 
             _initializeTasks.Add(_xboxController.InitializeAsync(cancellationToken));
             _initializeTasks.Add(_ikFilter.InitializeAsync());
@@ -156,6 +159,10 @@ namespace Hexapi.Service
                     }
 
                 }));
+
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-speech")
+                .SubscribeOn(Scheduler.Default)
+                .Subscribe(_textToSpeech.TextSubject));
         }
 
         private void DisposeSubscriptions()

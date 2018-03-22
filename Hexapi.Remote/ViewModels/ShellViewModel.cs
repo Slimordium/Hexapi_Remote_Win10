@@ -172,13 +172,14 @@ namespace Hexapi.Remote.ViewModels
             _disposables = new List<IDisposable>();
 
             AddToLog($"Subscribing to 'hex-eye', 'hex-imu', 'hex-sonar'");
+            AddToLog($"Publish on 'hex-speech' to talk");
 
             if (_xboxController != null && _xboxController.IsConnected)
             {
                 _disposables.Add(_xboxController.IkParamSubject
                     .Sample(TimeSpan.FromMilliseconds(Convert.ToInt64(UpdateInterval)))
                     .SubscribeOn(Scheduler.Default)
-                    .Subscribe(ik =>
+                    .Subscribe(async ik =>
                     {
                         Enum.TryParse(typeof(GaitType), GaitTypeSelectedValue, true, out var gaitType);
 
@@ -187,9 +188,7 @@ namespace Hexapi.Remote.ViewModels
                         ik.GaitSpeedMs = GaitSpeed;
                         ik.BodyPositionY = BodyHeight;
 
-                        _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik")
-                            .ToObservable()
-                            .Subscribe();
+                        await _mqttClient.PublishAsync(JsonConvert.SerializeObject(ik), "hex-ik");
                     }));
 
                 AddToLog($"Publishing Xbox events every {UpdateInterval}ms");

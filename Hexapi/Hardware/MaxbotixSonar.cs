@@ -21,7 +21,7 @@ namespace Hexapi.Service.Hardware
         {
             SonarSubject = Subject.Synchronize(_sonarSyncSubject);
 
-            _serialDevice = await HexapiService.SerialDeviceHelper.GetSerialDeviceAsync("COM5", 57600, TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(1000));
+            _serialDevice = await HexapiService.SerialDeviceHelper.GetSerialDeviceAsync("504WY", 57600, TimeSpan.FromMilliseconds(1000), TimeSpan.FromMilliseconds(1000));
 
             if (_serialDevice == null)
                 return;
