@@ -58,26 +58,21 @@ namespace Hexapi.Service.Hardware{
             await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
             async () =>
             {
-                var _mediaCapture = new MediaCapture();
+                var mediaCapture = new MediaCapture();
 
-                await _mediaCapture.InitializeAsync();
+                await mediaCapture.InitializeAsync();
 
-                var resolutions = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(MediaStreamType.VideoPreview).ToList();
-                // set used resolution
-                await _mediaCapture.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.VideoPreview, resolutions[4]); //4
+                var resolutions = mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(MediaStreamType.VideoPreview).ToList();
+                // set resolution
+                await mediaCapture.VideoDeviceController.SetMediaStreamPropertiesAsync(MediaStreamType.VideoPreview, resolutions[8]); //2, 8, 9 - 60fps = better
 
-                CaptureElement _captureElement = new CaptureElement();
-                // Set the preview source for the CaptureElement
-                _captureElement.Source = _mediaCapture;
+                var captureElement = new CaptureElement {Source = mediaCapture};
 
-                //// Start viewing through the CaptureElement 
-                await _mediaCapture.StartPreviewAsync();
+                await mediaCapture.StartPreviewAsync();
 
-                //// Get the property meta data about the video.
-                var props = _mediaCapture.VideoDeviceController.GetMediaStreamProperties(MediaStreamType.VideoPreview);
+                var props = mediaCapture.VideoDeviceController.GetMediaStreamProperties(MediaStreamType.VideoPreview);
 
-                //// Now set the updated meta data into the video preview.
-                await _mediaCapture.SetEncodingPropertiesAsync(MediaStreamType.VideoPreview, props, null);
+                await mediaCapture.SetEncodingPropertiesAsync(MediaStreamType.VideoPreview, props, null);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -85,7 +80,7 @@ namespace Hexapi.Service.Hardware{
                     {
                         try
                         {
-                            await _mediaCapture.CapturePhotoToStreamAsync(ImageEncodingProperties.CreateJpeg(), stream);
+                            await mediaCapture.CapturePhotoToStreamAsync(ImageEncodingProperties.CreateJpeg(), stream);
                         }
                         catch (Exception e)
                         {

@@ -15,9 +15,9 @@ namespace Hexapi.Service.Hardware
         private DataReader _inputStream;
 
         private readonly ISubject<int> _sonarSyncSubject = new BehaviorSubject<int>(0);
-        internal ISubject<int> SonarSubject { get; private set; }
+        public ISubject<int> SonarSubject { get; private set; }
 
-        internal async Task InitializeAsync()
+        public async Task InitializeAsync()
         {
             SonarSubject = Subject.Synchronize(_sonarSyncSubject);
 
@@ -29,7 +29,7 @@ namespace Hexapi.Service.Hardware
             _inputStream = new DataReader(_serialDevice.InputStream) { InputStreamOptions = InputStreamOptions.Partial };
         }
 
-        internal async Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             while (_inputStream == null)
             {
@@ -38,7 +38,7 @@ namespace Hexapi.Service.Hardware
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var byteCount = await _inputStream.LoadAsync(12);
+                var byteCount = await _inputStream.LoadAsync(8);
 
                 var buffer = new byte[byteCount];
 

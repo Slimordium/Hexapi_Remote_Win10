@@ -1,23 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Devices.Bluetooth.Advertisement;
-using Windows.Media.SpeechSynthesis;
-using Windows.UI.WebUI;
 using Windows.UI.Xaml.Controls;
 using Caliburn.Micro;
-using Hexapi.Host.Views;
-using Hexapi.Shared;
 using NLog;
-using NLog.Fluent;
-using RxMqtt.Client;
-using RxMqtt.Shared;
 
-namespace Hexapi.Host.ViewModels{
+namespace Hexapi.Host.ViewModels
+{
     public class ShellViewModel : Conductor<object>
     {
         private Service.HexapiService _hexapodService;
@@ -28,16 +20,21 @@ namespace Hexapi.Host.ViewModels{
 
         private IDisposable _logDisposable;
 
-        private IDisposable _speechDisposable;
-
         public IObservableCollection<string> Log { get; set; } = new BindableCollection<string>();
 
         private ILogger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         public MediaElement MediaElement { get; } = new MediaElement();
 
+        private readonly IDisposable _startDisposable;
+
+        private bool _started;
+
         public ShellViewModel()
         {
+            //15 seconds for alternate IP, otherwise use default
+            _startDisposable = Observable.Timer(TimeSpan.FromSeconds(15)).ObserveOnDispatcher().Subscribe(l => { Start().ToObservable().Subscribe(); });
+
             if (NLog.Targets.Rx.RxTarget.LogObservable != null)
             {
                 _logDisposable = NLog.Targets.Rx.RxTarget
@@ -53,23 +50,14 @@ namespace Hexapi.Host.ViewModels{
             }
         }
 
-        public async Task TextToSpeech(string text)
-        {
-            using (var speech = new SpeechSynthesizer())
-            {
-                speech.Voice = SpeechSynthesizer.AllVoices.First(gender => gender.Gender == VoiceGender.Female);
-
-                var stream = await speech.SynthesizeTextToStreamAsync(text);
-                MediaElement.Volume = 100;
-                MediaElement.SetSource(stream, stream.ContentType);
-                MediaElement.Play();
-            }
-        }
-
         public async Task Start()
         {
-            if (string.IsNullOrEmpty(BrokerIp))
+            if (string.IsNullOrEmpty(BrokerIp) || _started)
                 return;
+
+            _started = true;
+
+            _startDisposable?.Dispose();
 
             _hexapodService = new Service.HexapiService(BrokerIp);
 

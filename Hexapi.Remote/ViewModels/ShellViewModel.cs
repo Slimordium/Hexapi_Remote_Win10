@@ -13,6 +13,7 @@ using Windows.Graphics.Imaging;
 using Windows.Media.SpeechSynthesis;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
+using Windows.UI;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
@@ -20,6 +21,7 @@ using Hardware.Xbox;
 using Hexapi.Shared;
 using Hexapi.Shared.Ik.Enums;
 using Hexapi.Shared.Imu;
+using Microsoft.Graphics.Canvas;
 using Newtonsoft.Json;
 using NLog;
 using RxMqtt.Client;
@@ -281,7 +283,9 @@ namespace Hexapi.Remote.ViewModels
                         var decoder = await BitmapDecoder.CreateAsync(bitmapStream);
                         bitmapStream.Seek(0);
 
-                        HexImage = new WriteableBitmap((int) decoder.PixelHeight, (int) decoder.PixelWidth);
+                        //if (HexImage == null)
+                            HexImage = new WriteableBitmap((int) decoder.PixelHeight, (int) decoder.PixelWidth);
+
                         await HexImage.SetSourceAsync(bitmapStream);
 
                         NotifyOfPropertyChange(nameof(HexImage));
@@ -293,6 +297,21 @@ namespace Hexapi.Remote.ViewModels
                 AddToLog(e.Message);
             }
         }
+
+        //public async Task GenerateThumbnailAsync(IRandomAccessStream stream, int width, int height, CanvasBitmapFileFormat imageType)
+        //{
+        //    CanvasDevice device = CanvasDevice.GetSharedDevice();
+        //    PageRenderer renderer = new PageRenderer(device);
+        //    using (CanvasRenderTarget offscreen = new CanvasRenderTarget(device, width, height, 96))
+        //    {
+        //        using (CanvasDrawingSession ds = offscreen.CreateDrawingSession())
+        //        {
+        //            ds.Clear(Colors.Black);
+        //            renderer.DrawPage(ds);
+        //        }
+        //        await offscreen.SaveAsync(stream, imageType);
+        //    }
+        //}
 
         private static async Task<IRandomAccessStream> Reencode(IRandomAccessStream stream, PhotoOrientation photoOrientation)
         {
