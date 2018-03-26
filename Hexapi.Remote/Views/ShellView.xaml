@@ -4,6 +4,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:xaml="using:Microsoft.Graphics.Canvas.UI.Xaml"
     MinWidth="1000"
     MinHeight="700"
     mc:Ignorable="d">
@@ -34,32 +35,6 @@
         <TextBox Name="BrokerIp" Grid.Row="0" Grid.Column="1" Height="28"></TextBox>
         <Button Name="BrokerConnect" Grid.Column="2" Grid.Row="0" Content="Connect" HorizontalAlignment="Center" MinWidth="115"></Button>
 
-        <Grid Grid.Row="0" Grid.Column="3" Width="Auto" Grid.ColumnSpan="2" HorizontalAlignment="Center">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="35" />
-            </Grid.RowDefinitions>
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Yaw:" Width="30" VerticalAlignment="Center"></TextBlock>
-            <TextBox Grid.Column="1" Grid.Row="0" Name="Yaw" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="2" Grid.Row="0" Text="Pitch:" Width="30" Margin="5" VerticalAlignment="Center"></TextBlock>
-            <TextBox Grid.Column="3" Grid.Row="0" Name="Pitch" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="4" Grid.Row="0" Text="Roll:" Width="30" VerticalAlignment="Center"></TextBlock>
-            <TextBox Grid.Column="5" Grid.Row="0" Name="Roll" Height="28" Width="50"></TextBox>
-            <TextBlock Grid.Column="6" Grid.Row="0" Text="Sonar:" Width="42" VerticalAlignment="Center"></TextBlock>
-            <TextBox Grid.Column="7" Grid.Row="0" Name="Inches" Height="28" Width="50"></TextBox>
-            <ComboBox Name="Resolution" Grid.Column="8" Grid.Row="0" SelectedItem="{Binding ResolutionSelectedValue}" Margin="15,0,0,0"></ComboBox>
-        </Grid>
-
         <CheckBox Name="StreamChanges" Content="Remote?" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" FontSize="12" MinWidth="85"></CheckBox>
         <Slider Name="UpdateInterval" Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="750" Value="100" ></Slider>
         <Button Name="SetUpdateInterval" Grid.Column="2" Grid.Row="1" Content="Set Update Interval" HorizontalAlignment="Center"></Button>
@@ -87,7 +62,7 @@
         <TextBox Name="SubTopic" Grid.Row="8" Grid.Column="1" Height="28"></TextBox>
         <Button Name="Subscribe" Grid.Column="2" Grid.Row="8" Content="Subscribe" HorizontalAlignment="Center"></Button>
 
-        <Image Grid.Column="3" Grid.Row="1" Width="Auto" Height="Auto" Grid.RowSpan="9" HorizontalAlignment="Stretch" Grid.ColumnSpan="2" Stretch="Uniform" Name="HexImage" Margin="5"></Image>
+        <xaml:CanvasControl x:Name="CanvasControl" Grid.Column="3" Grid.Row="0" Width="800" Height="600" Grid.RowSpan="10" Grid.ColumnSpan="2" Draw="CanvasControl_OnDraw" CreateResources="CanvasControl_CreateResources"/>
 
         <ListView Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Height="500" ItemsSource="{Binding Log}" Width="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="0" Padding="0">
             <ListView.ItemContainerStyle>

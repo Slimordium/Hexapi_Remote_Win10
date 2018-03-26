@@ -18,6 +18,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Caliburn.Micro;
 using Hardware.Xbox;
+using Hexapi.Remote.Views;
 using Hexapi.Shared;
 using Hexapi.Shared.Ik.Enums;
 using Hexapi.Shared.Imu;
@@ -39,15 +40,8 @@ namespace Hexapi.Remote.ViewModels
 
         private MqttClient _mqttClient;
 
-        private double _pitch;
-
-        private double _roll;
-
-        private double _sonar;
-
         private XboxIkController _xboxController;
 
-        private double _yaw;
         public IObservableCollection<string> Log { get; set; } = new BindableCollection<string>();
 
         private readonly ILogger _logger = NLog.LogManager.GetCurrentClassLogger();
@@ -76,46 +70,6 @@ namespace Hexapi.Remote.ViewModels
         public bool StreamChanges { get; set; }
 
         public WriteableBitmap HexImage { get; set; }
-
-        public double Yaw
-        {
-            get => _yaw;
-            set
-            {
-                _yaw = value;
-                NotifyOfPropertyChange(nameof(Yaw));
-            }
-        }
-
-        public double Pitch
-        {
-            get => _pitch;
-            set
-            {
-                _pitch = value;
-                NotifyOfPropertyChange(nameof(Pitch));
-            }
-        }
-
-        public double Roll
-        {
-            get => _roll;
-            set
-            {
-                _roll = value;
-                NotifyOfPropertyChange(nameof(Roll));
-            }
-        }
-
-        public double Inches
-        {
-            get => _sonar;
-            set
-            {
-                _sonar = value;
-                NotifyOfPropertyChange(nameof(Inches));
-            }
-        }
 
         public async Task SetUpdateInterval()
         {
@@ -201,13 +155,22 @@ namespace Hexapi.Remote.ViewModels
             }
 
             _disposables.Add(_mqttClient.GetPublishByteObservable("hex-eye").ObserveOnDispatcher().Subscribe(
-                async buffer =>
+                bytes =>
                 {
-                    await ImageHandler(buffer);
+                    ShellView.ImageSubject.OnNext(bytes.AsBuffer());
                 }));
 
-            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-imu").ObserveOnDispatcher().Subscribe(Imu));
-            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-sonar").ObserveOnDispatcher().Subscribe(Sonar));
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-imu").ObserveOnDispatcher().Subscribe(serializedData =>
+                {
+                    var imuData = JsonConvert.DeserializeObject<ImuData>(serializedData);
+
+                    ShellView.ImuData = imuData;
+                }));
+
+            _disposables.Add(_mqttClient.GetPublishStringObservable("hex-sonar").ObserveOnDispatcher().Subscribe(r =>
+                {
+                    ShellView.Range = Convert.ToInt32(r);
+                }));
         }
 
         public async Task TextToSpeech(string text)
@@ -242,111 +205,6 @@ namespace Hexapi.Remote.ViewModels
             {
                 AddToLog(e.Message);
             }
-        }
-
-        private void Imu(string serializedData)
-        {
-            try
-            {
-                var imuData = JsonConvert.DeserializeObject<ImuData>(serializedData);
-
-                Yaw = imuData.Yaw;
-                Pitch = imuData.Pitch;
-                Roll = imuData.Roll;
-            }
-            catch (Exception)
-            {
-                //Dont care
-            }
-        }
-
-        private void Sonar(string inches)
-        {
-            try
-            {
-                Inches = Convert.ToInt32(inches);
-            }
-            catch (Exception)
-            {
-                //Dont care
-            }
-        }
-
-        private async Task ImageHandler(byte[] buffer)
-        {
-            try
-            {
-                using (var imageBuffer = buffer.AsBuffer().AsStream().AsRandomAccessStream())
-                {
-                    using (var bitmapStream = await Reencode(imageBuffer, PhotoOrientation.Rotate180))
-                    {
-                        var decoder = await BitmapDecoder.CreateAsync(bitmapStream);
-                        bitmapStream.Seek(0);
-
-                        //if (HexImage == null)
-                            HexImage = new WriteableBitmap((int) decoder.PixelHeight, (int) decoder.PixelWidth);
-
-                        await HexImage.SetSourceAsync(bitmapStream);
-
-                        NotifyOfPropertyChange(nameof(HexImage));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                AddToLog(e.Message);
-            }
-        }
-
-        //public async Task GenerateThumbnailAsync(IRandomAccessStream stream, int width, int height, CanvasBitmapFileFormat imageType)
-        //{
-        //    CanvasDevice device = CanvasDevice.GetSharedDevice();
-        //    PageRenderer renderer = new PageRenderer(device);
-        //    using (CanvasRenderTarget offscreen = new CanvasRenderTarget(device, width, height, 96))
-        //    {
-        //        using (CanvasDrawingSession ds = offscreen.CreateDrawingSession())
-        //        {
-        //            ds.Clear(Colors.Black);
-        //            renderer.DrawPage(ds);
-        //        }
-        //        await offscreen.SaveAsync(stream, imageType);
-        //    }
-        //}
-
-        private static async Task<IRandomAccessStream> Reencode(IRandomAccessStream stream, PhotoOrientation photoOrientation)
-        {
-            IRandomAccessStream randomAccessStream;
-
-            using (var inputStream = stream)
-            {
-                var decoder = await BitmapDecoder.CreateAsync(inputStream);
-
-                using (var outputStream = new InMemoryRandomAccessStream())
-                {
-                    var pixelData = await decoder.GetPixelDataAsync(
-                        BitmapPixelFormat.Rgba8,
-                        BitmapAlphaMode.Straight,
-                        new BitmapTransform {ScaledHeight = decoder.PixelHeight, ScaledWidth = decoder.PixelWidth},
-                        ExifOrientationMode.RespectExifOrientation,
-                        ColorManagementMode.DoNotColorManage);
-
-                    var encoder = await BitmapEncoder.CreateForTranscodingAsync(outputStream, decoder);
-
-                    encoder.SetPixelData(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Premultiplied, decoder.PixelWidth, decoder.PixelHeight, 96, 96, pixelData.DetachPixelData());
-
-                    var properties = new BitmapPropertySet
-                    {
-                        {"System.Photo.Orientation", new BitmapTypedValue(photoOrientation, PropertyType.UInt16)}
-                    };
-
-                    await encoder.BitmapProperties.SetPropertiesAsync(properties);
-                    await encoder.FlushAsync();
-
-                    randomAccessStream = outputStream.CloneStream();
-                }
-            }
-
-            return randomAccessStream;
         }
 
         public async Task PublishMessage()
