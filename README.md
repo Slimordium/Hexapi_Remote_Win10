@@ -1,5 +1,7 @@
-There are two solutions. The Hexapi UI Service host, is a UWP app that does nothing other than host the hexapi service.
-I am getting better performance doing it this way rather than using a background task.
+There are two UWP projects. One that runs on the hexapod, and the other that runs on a remote PC. Sonar (Maxbotix), Razor IMU and video is streamed to the remote PC using a MQTT broker. The broker used for testing can be found here: https://github.com/Slimordium/RxMqtt
 
-The other solution is the HexaPI Remote UI. It is also a UWP app that offers viewing of streaming video over MQTT.
-The xBox controller works through this app, the movements of the controller are sampled at a adjustable rate and published to the hexapod.
+There is a nuget package available for the MQTT Client here: https://www.nuget.org/packages?q=RxMQTT
+
+The client, shared libraries and broker are .NET Standard 2.0. Currently compiled for x64, but should also work compiled for ARM.
+
+
