@@ -61,7 +61,7 @@ namespace Hexapi.Service
 
             try
             {
-                _mqttClient = new MqttClient("Hexapi", _brokerIp, 1883, 60000, cancellationToken);
+                _mqttClient = new MqttClient("Hexapi", _brokerIp, 1883);
 
                 status = await _mqttClient.InitializeAsync();
 
@@ -120,7 +120,7 @@ namespace Hexapi.Service
                 {
                     try
                     {
-                        await _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(2));
+                        await _mqttClient.PublishAsync(bytes, "hex-eye", TimeSpan.FromSeconds(5));
                     }
                     catch (TimeoutException)
                     {
@@ -136,7 +136,7 @@ namespace Hexapi.Service
                 {
                     try
                     {
-                        await _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(2));
+                        await _mqttClient.PublishAsync(JsonConvert.SerializeObject(imuData), "hex-imu", TimeSpan.FromSeconds(5));
                     }
                     catch (TimeoutException)
                     {
@@ -151,7 +151,7 @@ namespace Hexapi.Service
                 {
                     try
                     {
-                        await _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(2));
+                        await _mqttClient.PublishAsync(sonar.ToString(), "hex-sonar", TimeSpan.FromSeconds(5));
                     }
                     catch (TimeoutException)
                     {

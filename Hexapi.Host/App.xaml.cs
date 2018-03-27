@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.ExtendedExecution;
 using Windows.UI.Xaml.Controls;
@@ -18,9 +19,6 @@ namespace Hexapi.Host
     public sealed partial class App
     {
         private WinRTContainer _container;
-        //private HexapodService _hexapodService;
-
-        //private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public App()
         {
@@ -30,27 +28,27 @@ namespace Hexapi.Host
 
         protected override async void Configure()
         {
-            var extendedExecutionSession = new ExtendedExecutionSession {Reason = ExtendedExecutionReason.Unspecified};
-            var extendedExecutionResult = await extendedExecutionSession.RequestExtensionAsync();
-            if (extendedExecutionResult != ExtendedExecutionResult.Allowed)
-            {
-                //extended execution session revoked
-                extendedExecutionSession.Dispose();
-                extendedExecutionSession = null;
-            }
-
             _container = new WinRTContainer();
 
             _container.RegisterWinRTServices();
 
             _container.Singleton<ShellViewModel>();
-
-           
         }
 
         protected override void PrepareViewFirst(Frame rootFrame)
         {
             _container.RegisterNavigationService(rootFrame);
+        }
+
+        protected override async void OnSuspending(object sender, SuspendingEventArgs e)
+        {
+            var extendedExecutionSession = new ExtendedExecutionSession { Reason = ExtendedExecutionReason.Unspecified };
+            var extendedExecutionResult = await extendedExecutionSession.RequestExtensionAsync();
+            if (extendedExecutionResult != ExtendedExecutionResult.Allowed)
+            {
+                extendedExecutionSession.Dispose();
+                extendedExecutionSession = null;
+            }
         }
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)

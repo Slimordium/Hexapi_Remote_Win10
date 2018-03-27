@@ -87,17 +87,24 @@ namespace Hexapi.Remote.Views{
         {
             args.DrawingSession.DrawImage(_canvasRenderTarget);
 
-            var color = Colors.DeepSkyBlue;
+            var color = Colors.GreenYellow;
 
             if (Range <= 12)
                 color = Colors.Red;
 
             //args.DrawingSession.DrawCircle((float)_canvasCenterWidth, (float)_canvasCenterHeight, (float)Range.Map(0, 70, 290, 2), circleColor);
 
-            args.DrawingSession.DrawText($"Range: {Range} in.", new Vector2((float)_canvasCenterWidth - 15, 55), color);
-            args.DrawingSession.DrawText($"Yaw: {ImuData.Yaw}", new Vector2((float)_canvasCenterWidth - 15, 480), Colors.DeepSkyBlue);
-            args.DrawingSession.DrawText($"Pitch: {ImuData.Pitch}", new Vector2((float)_canvasCenterWidth - 15, 505), Colors.DeepSkyBlue);
-            args.DrawingSession.DrawText($"Roll: {ImuData.Roll}", new Vector2((float)_canvasCenterWidth - 15, 530), Colors.DeepSkyBlue);
+            args.DrawingSession.DrawText($"Range: {Range} in.", new Vector2(14, (float)_canvasCenterHeight - 1), Colors.Black);
+            args.DrawingSession.DrawText($"Range: {Range} in.", new Vector2(15, (float)_canvasCenterHeight), color);
+
+            args.DrawingSession.DrawText($"Yaw: {ImuData.Yaw}", new Vector2(14, 499), Colors.Black);
+            args.DrawingSession.DrawText($"Yaw: {ImuData.Yaw}", new Vector2(15, 500), Colors.GreenYellow);
+
+            args.DrawingSession.DrawText($"Pitch: {ImuData.Pitch}", new Vector2(14, 524), Colors.Black);
+            args.DrawingSession.DrawText($"Pitch: {ImuData.Pitch}", new Vector2(15, 525), Colors.GreenYellow);
+
+            args.DrawingSession.DrawText($"Roll: {ImuData.Roll}", new Vector2(14, 549), Colors.Black);
+            args.DrawingSession.DrawText($"Roll: {ImuData.Roll}", new Vector2(15, 550), Colors.GreenYellow);
         }
     }
 }

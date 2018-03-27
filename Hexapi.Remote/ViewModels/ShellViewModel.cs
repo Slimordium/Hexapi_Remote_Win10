@@ -91,7 +91,7 @@ namespace Hexapi.Remote.ViewModels
 
         private async Task Connect()
         {
-            _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883, 60000, _cancellationTokenSource.Token);
+            _mqttClient = new MqttClient($"HexRemote-{DateTime.Now.Millisecond}", BrokerIp, 1883);
 
             var result = await _mqttClient.InitializeAsync();
 
@@ -199,7 +199,25 @@ namespace Hexapi.Remote.ViewModels
                     await Connect();
                 }
                 else
+                {
                     AddToLog("Disconnecting/reconnecting...");
+
+                    try
+                    {
+                        foreach (var disposable in _disposables)
+                            disposable.Dispose();
+                    }
+                    catch (Exception)
+                    {
+                        //
+                    }
+
+                    _mqttClient.Dispose();
+
+                    _mqttClient = null;
+
+                    await Connect();
+                }
             }
             catch (Exception e)
             {
