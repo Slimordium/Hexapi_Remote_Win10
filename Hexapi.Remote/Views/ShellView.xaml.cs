@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Reactive.Linq;
@@ -10,11 +11,11 @@ using Windows.Storage.Streams;
 using Windows.UI;
 using Windows.UI.Xaml.Controls.Primitives;
 using Hexapi.Shared.Imu;
+using Hexapi.Shared.OpenCv;
 using Hexapi.Shared.Utilities;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Graphics.Canvas.UI.Xaml;
-
 
 namespace Hexapi.Remote.Views{
 
@@ -22,7 +23,11 @@ namespace Hexapi.Remote.Views{
     {
         private IDisposable _imageDisposable;
 
-        public static Subject<IBuffer> ImageSubject { get; } = new Subject<IBuffer>();
+        private IDisposable _cvDisposable;
+
+        internal static Subject<IBuffer> ImageSubject { get; } = new Subject<IBuffer>();
+
+        internal static Subject<List<CircleF>> OpenCvShapeDetectSubject { get; } = new Subject<List<CircleF>>();
 
         internal static ImuData ImuData { private get; set; } = new ImuData();
 
@@ -35,6 +40,8 @@ namespace Hexapi.Remote.Views{
         private double _canvasCenterHeight;
 
         private CanvasRenderTarget _canvasRenderTarget;
+
+        private static List<CircleF> _circleF;
 
         public ShellView()
         {
@@ -66,6 +73,16 @@ namespace Hexapi.Remote.Views{
                                 var sourceRect = image.GetBounds(ds);
                                 ds.DrawImage(image, rect, sourceRect, 1);
                             }
+
+                            if (_circleF != null)
+                            {
+                                var cl = new List<CircleF>(_circleF);
+
+                                foreach (var c in cl)
+                                {
+                                    ds.DrawCircle(new Vector2(c.Center.X, c.Center.Y), c.Radius, Colors.GreenYellow);
+                                }
+                            }
                         }
                     }
 
@@ -73,6 +90,8 @@ namespace Hexapi.Remote.Views{
 
                     _notComplete = false;
                 });
+
+            _cvDisposable = OpenCvShapeDetectSubject.Subscribe(circleF => { _circleF = circleF; });
         }
 
         private void CanvasControl_CreateResources(CanvasControl sender, Microsoft.Graphics.Canvas.UI.CanvasCreateResourcesEventArgs args)

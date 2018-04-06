@@ -22,6 +22,7 @@ using Hexapi.Remote.Views;
 using Hexapi.Shared;
 using Hexapi.Shared.Ik.Enums;
 using Hexapi.Shared.Imu;
+using Hexapi.Shared.OpenCv;
 using Microsoft.Graphics.Canvas;
 using Newtonsoft.Json;
 using NLog;
@@ -170,6 +171,11 @@ namespace Hexapi.Remote.ViewModels
             _disposables.Add(_mqttClient.GetPublishStringObservable("hex-sonar").ObserveOnDispatcher().Subscribe(r =>
                 {
                     ShellView.Range = Convert.ToInt32(r);
+                }));
+
+            _disposables.Add(_mqttClient.GetPublishStringObservable("opencv-circle").ObserveOnDispatcher().Subscribe(r =>
+                {
+                    ShellView.OpenCvShapeDetectSubject.OnNext(JsonConvert.DeserializeObject<List<CircleF>>(r));
                 }));
         }
 
